@@ -1,4 +1,4 @@
-/* Gata.md — демо-объявления (заменяются данными с сервера) */
+/* Project — демо-объявления (заменяются данными с сервера) */
 let seed = 11; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const ri = (a,b) => a + Math.floor(R()*(b-a+1));
 const pick = a => a[Math.floor(R()*a.length)];

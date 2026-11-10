@@ -1,4 +1,4 @@
-/* Gata.md — состояние, поиск, отрисовка, окна */
+/* Project — состояние, поиск, отрисовка, окна */
 const S = {lang:"ru",cat:null,sub:null,q:"",reg:"all",min:"",max:"",cur:"MDL",cond:"all",photo:false,priv:false,deal:false,delivery:false,verified:false,attrs:{},ids:null,sort:"new",view:"grid",favOnly:false,shown:24};
 const FAV = new Set();
 try{ JSON.parse(localStorage.getItem("gata_fav")||"[]").forEach(x=>FAV.add(x)); }catch(e){}
@@ -14,6 +14,7 @@ const fieldsFor = (c,sub) => c ? c.fields.filter(f => !f.only || (sub!==null && 
 const fmtN = n => Math.round(n).toLocaleString("ru-RU");
 const curS = c => c==="EUR"?"€":(S.lang==="ru"?"лей":"lei");
 const mdl = a => a.cur==="EUR" ? a.price*RATE : a.price;
+const norm = x => String(x).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 const isDeal = a => a.val>0 && a.price>0 && a.price <= a.val*0.9;
 function fmtAttr(f,v,lang=S.lang){
   const ru = lang==="ru";
@@ -43,7 +44,7 @@ function cover(a){
 
 /* =================== FILTER ENGINE (используется и сайтом, и ИИ) =================== */
 function query(p){
-  const q = (p.q||"").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const q = norm(p.q||"").trim().split(/\s+/).filter(Boolean);
   const k = p.cur==="EUR"?RATE:1;
   const min = p.min===""||p.min==null ? null : +p.min*k, max = p.max===""||p.max==null ? null : +p.max*k;
   let r = ADS.filter(a =>
@@ -52,7 +53,7 @@ function query(p){
     (!p.reg || p.reg==="all" || a.reg===p.reg) && (!p.cond || p.cond==="all" || a.cond===p.cond) &&
     (!p.photo || a.photos>0) && (!p.priv || a.priv) && (!p.deal || isDeal(a)) && (!p.delivery || a.delivery) && (!p.verified || sellerOf(a).verified) &&
     (min==null || mdl(a) >= min) && (max==null || (mdl(a) <= max && !(a.price===0 && ["serv","job"].includes(a.cat)))) &&
-    (!q.length || q.every(w => (a.title+" "+a.desc+" "+Object.values(a.attrs).join(" ")).toLowerCase().includes(w))) &&
+    (!q.length || q.every(w => (a._h ||= norm(a.title+" "+a.desc+" "+Object.values(a.attrs).join(" ")+" "+regName(a.reg,"ru")+" "+regName(a.reg,"ro")+" "+catOf(a.cat).ru+" "+catOf(a.cat).ro)).includes(w))) &&
     Object.entries(p.attrs||{}).every(([key,v]) => {
       const x = a.attrs[key];
       if (v==null || v==="" ) return true;
@@ -109,7 +110,7 @@ function renderAdv(){
 }
 function cardHTML(a){
   const c = catOf(a.cat), sp = specLine(a);
-  return `<article class="card${a.hl?" hl":""}" data-id="${a.id}">
+  return `<article class="card${a.hl?" hl":""}" data-id="${a.id}" tabindex="0" role="button" aria-label="${esc(a.title)}">
     <div class="ph" ${cover(a)}>${a.imgs.length?"":`<i data-lucide="${icOf(a)}"></i>`}
       ${a.top?`<span class="top">${t("top")}</span>`:""}
       ${a.photos?`<span class="cnt"><i data-lucide="camera"></i>${a.photos}</span>`:""}
@@ -127,7 +128,8 @@ function render(){
   $("#cnt").textContent = r.length;
   const g = $("#grid");
   g.className = "grid" + (S.view==="list"?" list":"") + (S.view==="map"?" mapv":"");
-  g.innerHTML = S.view==="map" ? renderMap(r) : r.length ? r.slice(0,S.shown).map(cardHTML).join("") :
+  g.innerHTML = S.view==="map" ? renderMap(r) : r.length ? r.slice(0,S.shown).map(cardHTML).join("") : S.favOnly ?
+    `<div class="empty" style="grid-column:1/-1"><i data-lucide="heart"></i><h3>${t("favEmpty")}</h3><p>${t("favEmpty2")}</p></div>` :
     `<div class="empty" style="grid-column:1/-1"><i data-lucide="search-x"></i><h3>${t("nores")}</h3><p>${t("nores2")}</p></div>`;
   $("#more").style.display = S.view!=="map" && r.length > S.shown ? "block" : "none";
   renderHomeStrips(); updateBadges();
@@ -153,8 +155,9 @@ function render(){
 const full = () => { renderStatic(); renderCats(); render(); };
 
 /* =================== MODALS =================== */
+const BASE_TITLE = document.title;
 function openModal(html, w=860){ $("#md").style.maxWidth = w+"px"; $("#md").innerHTML = `<button class="x" id="mx"><i data-lucide="x"></i></button>`+html; $("#ov").classList.add("show"); document.body.style.overflow="hidden"; icons(); }
-function closeModal(){ $("#ov").classList.remove("show"); if(!$("#drawer").classList.contains("open")) document.body.style.overflow=""; }
+function closeModal(){ document.title = BASE_TITLE; $("#ov").classList.remove("show"); if(!$("#drawer").classList.contains("open")) document.body.style.overflow=""; }
 function toast(msg){ const el=$("#toast"); el.querySelector("span").textContent=msg; el.classList.add("show"); clearTimeout(toast.h); toast.h=setTimeout(()=>el.classList.remove("show"),2200); }
 
 /* openAd — в features.js */

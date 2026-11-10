@@ -1,3 +1,3 @@
-/* Gata.md — запуск */
+/* Project — запуск */
 full();
 routeHash();

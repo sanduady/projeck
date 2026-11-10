@@ -284,7 +284,7 @@ img,svg{max-width:100%}
   .catbtn,.post,#favBtn,#msgBtn,#cabBtn{display:none}
   .aibtn{height:40px;animation:none}
   .aibtn span{display:inline;font-size:13px}
-  .search{order:5;flex-basis:100%;height:44px}
+  .sw{order:5;flex-basis:100%}.search{height:44px}
   .search input{font-size:16px} /* no iOS zoom */
   .hero{padding-top:4px}
   .hero-in{padding:16px;border-radius:16px}
@@ -500,3 +500,28 @@ img,svg{max-width:100%}
 .det .ph{aspect-ratio:4/3;min-height:0;height:auto;flex:none !important;background-size:cover}
 .det>div:first-child{background:#f1f4f2}
 .gal{flex-wrap:wrap}.gal img{width:84px;height:63px;border:2px solid transparent}.gal img:hover{border-color:var(--brand)}
+
+/* ===== подсказки поиска ===== */
+.sw{flex:1;position:relative;min-width:0;display:flex}
+.sw .search{flex:1}
+.suggest{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(16,35,28,.22);padding:8px;z-index:45;max-height:min(70vh,460px);overflow:auto}
+.sgh{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--mute);font-weight:700;padding:8px 10px 4px}
+.sgh button{color:var(--brand);font-weight:700;text-transform:none;letter-spacing:0;font-size:12.5px}
+.sgi{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:10px;text-align:left;font-size:14.5px}
+.sgi svg{width:16px;height:16px;color:var(--mute);flex:none}
+.sgi span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sgi small{color:var(--mute);font-weight:600;white-space:nowrap}
+.sgi:hover,.sgi.act,.sgchips .chip.act{background:#eef6f1}
+.sgi b{color:var(--brand)}
+.sgchips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 10px 8px}
+/* ===== информационные страницы ===== */
+.info p{color:var(--ink2);font-size:15.5px;line-height:1.6}
+.infolinks{display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid var(--line);padding-top:14px;margin-top:4px}
+/* ===== наверх ===== */
+.totop{position:fixed;right:20px;bottom:24px;width:46px;height:46px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;box-shadow:0 6px 20px rgba(16,35,28,.3);z-index:35}
+.totop[hidden]{display:none}
+.totop:hover{background:var(--brand2)}
+.card:focus-visible,.chip:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #7b5cff;outline-offset:2px}
+@media (max-width:640px){.totop{bottom:calc(78px + env(safe-area-inset-bottom));right:14px;width:42px;height:42px}.suggest{max-height:60vh}}
+.suggest{min-width:min(420px,92vw)}
+@media (max-width:640px){.sw{flex:0 0 100%;order:5}.suggest{min-width:0}}

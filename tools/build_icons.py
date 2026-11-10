@@ -14,7 +14,7 @@ for n in sorted(names):
     p = os.path.join(icdir, n + ".svg")
     if not os.path.exists(p): print("нет иконки:", n); continue
     icons[n] = re.sub(r"\s+", " ", re.search(r"<svg[^>]*>(.*)</svg>", open(p).read(), re.S).group(1)).strip()
-js = ("/* Gata.md — иконки Lucide (https://lucide.dev, ISC). Файл генерируется tools/build_icons.py */\n"
+js = ("/* Project — иконки Lucide (https://lucide.dev, ISC). Файл генерируется tools/build_icons.py */\n"
       "const ICONS=" + json.dumps(icons, ensure_ascii=False) + ";\n"
       "const icons=()=>document.querySelectorAll('i[data-lucide]').forEach(el=>{const n=el.dataset.lucide;if(!ICONS[n])return;"
       "const st=el.getAttribute('style')||'';el.outerHTML=`<svg class=\"lucide\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" "

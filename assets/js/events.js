@@ -1,4 +1,4 @@
-/* Gata.md — обработчики событий */
+/* Project — обработчики событий */
 function resetState(){
   Object.assign(S,{cat:null,sub:null,q:"",reg:"all",min:"",max:"",cond:"all",photo:false,priv:false,deal:false,delivery:false,verified:false,attrs:{},ids:null,favOnly:false,sort:"new",shown:24});
   $("#q").value=""; $("#pmin").value=$("#pmax").value=""; $("#fPhoto").checked=$("#fPrivate").checked=$("#fDeal").checked=$("#fDel").checked=$("#fVer").checked=false;

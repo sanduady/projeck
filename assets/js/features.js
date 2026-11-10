@@ -1,4 +1,4 @@
-/* Gata.md — функции маркетплейса:
+/* Project — функции маркетплейса:
    продавцы и отзывы, мессенджер, доставка с безопасной оплатой, личный кабинет,
    сохранённые поиски, продвижение, поиск на карте, «вы смотрели», рекомендации, похожие, поделиться/пожаловаться.
    В демо-версии данные хранятся в браузере (localStorage); на сервере их заменит API. */
@@ -26,7 +26,7 @@ const saveMy = () => { const mine = ADS.filter(a=>a.mine);
 Object.assign(T.ru, {
   msgs:"Сообщения", cabinet:"Кабинет", nMsgs:"Чаты", nProfile:"Профиль", delivery:"Доставка", withDelivery:"С доставкой", verifiedOnly:"Проверенные продавцы",
   verified:"Документы проверены", reply_min:"Отвечает за несколько минут", reply_hour:"Отвечает в течение часа", reply_day:"Отвечает в течение дня",
-  reviewsN:"отзывов", noReviews:"Пока нет отзывов", sinceY:"На Gata с", soldN:"продаж", allAds:"Все объявления продавца", reviews:"Отзывы", ads2:"Объявления",
+  reviewsN:"отзывов", noReviews:"Пока нет отзывов", sinceY:"На Project с", soldN:"продаж", allAds:"Все объявления продавца", reviews:"Отзывы", ads2:"Объявления",
   buyDelivery:"Купить с доставкой", deliveryInfo:"Доставка по Молдове от 49 лей · Безопасная оплата", writeSeller:"Написать продавцу",
   share:"Поделиться", report:"Пожаловаться", linkCopied:"Ссылка скопирована", similar:"Похожие объявления", sellerOther:"Другие объявления продавца",
   quick:["Ещё продаётся?","Торг уместен?","Когда можно посмотреть?","Отправите доставкой?"], chatPh:"Сообщение…", noChats:"Здесь появятся ваши переписки с продавцами. Нажмите «Написать продавцу» в любом объявлении.",
@@ -42,13 +42,13 @@ Object.assign(T.ru, {
   raise:"Поднять", remove:"Снять", open:"Открыть", del:"Удалить", raised:"Объявление поднято в начало списка", removed:"Объявление снято с публикации", viewsN:"просмотров",
   saveSearch:"Сохранить поиск", searchSaved:"Поиск сохранён — новые объявления будут в кабинете", nowFound:"сейчас найдено", newN:"новых",
   promo_t:"Продвижение", promoOpts:[["none","Обычное","Бесплатно"],["hl","Выделить цветом","29 лей · 7 дней"],["top","В ТОП","59 лей · 3 дня"],["turbo","Турбо: ТОП + выделение","99 лей · до 10× просмотров"]], promoNote:"Демо: оплата продвижения подключается позже.",
-  pDelivery:"Готов отправить доставкой (Gata Доставка)",
+  pDelivery:"Готов отправить доставкой (Project Доставка)",
   viewedT:"Вы недавно смотрели", recoT:"Рекомендации для вас", mapT:"Объявления на карте", mapHint:"Нажмите на город, чтобы показать его объявления", map:"Карта"
 });
 Object.assign(T.ro, {
   msgs:"Mesaje", cabinet:"Cabinet", nMsgs:"Chaturi", nProfile:"Profil", delivery:"Livrare", withDelivery:"Cu livrare", verifiedOnly:"Vânzători verificați",
   verified:"Documente verificate", reply_min:"Răspunde în câteva minute", reply_hour:"Răspunde într-o oră", reply_day:"Răspunde în aceeași zi",
-  reviewsN:"recenzii", noReviews:"Încă nu are recenzii", sinceY:"Pe Gata din", soldN:"vânzări", allAds:"Toate anunțurile vânzătorului", reviews:"Recenzii", ads2:"Anunțuri",
+  reviewsN:"recenzii", noReviews:"Încă nu are recenzii", sinceY:"Pe Project din", soldN:"vânzări", allAds:"Toate anunțurile vânzătorului", reviews:"Recenzii", ads2:"Anunțuri",
   buyDelivery:"Cumpără cu livrare", deliveryInfo:"Livrare în toată Moldova de la 49 lei · Plată sigură", writeSeller:"Scrie vânzătorului",
   share:"Distribuie", report:"Raportează", linkCopied:"Link copiat", similar:"Anunțuri similare", sellerOther:"Alte anunțuri ale vânzătorului",
   quick:["Mai este disponibil?","Prețul e negociabil?","Când pot să-l văd?","Trimiteți cu livrare?"], chatPh:"Mesaj…", noChats:"Aici vor apărea conversațiile cu vânzătorii. Apasă „Scrie vânzătorului” în orice anunț.",
@@ -64,7 +64,7 @@ Object.assign(T.ro, {
   raise:"Ridică", remove:"Retrage", open:"Deschide", del:"Șterge", raised:"Anunțul a fost ridicat în top", removed:"Anunțul a fost retras", viewsN:"vizualizări",
   saveSearch:"Salvează căutarea", searchSaved:"Căutare salvată — anunțurile noi vor fi în cabinet", nowFound:"găsite acum", newN:"noi",
   promo_t:"Promovare", promoOpts:[["none","Obișnuit","Gratuit"],["hl","Evidențiere color","29 lei · 7 zile"],["top","În TOP","59 lei · 3 zile"],["turbo","Turbo: TOP + evidențiere","99 lei · până la 10× vizualizări"]], promoNote:"Demo: plata promovării se conectează mai târziu.",
-  pDelivery:"Pot trimite prin livrare (Gata Livrare)",
+  pDelivery:"Pot trimite prin livrare (Project Livrare)",
   viewedT:"Ai văzut recent", recoT:"Recomandări pentru tine", mapT:"Anunțuri pe hartă", mapHint:"Apasă pe un oraș pentru a vedea anunțurile lui", map:"Hartă"
 });
 
@@ -125,6 +125,7 @@ function openAd(id){
   VIEWED = [id, ...VIEWED.filter(x=>x!==id)].slice(0,30); store.set("viewed", VIEWED);
   const c = catOf(a.cat), s = sellerOf(a);
   const attrs = fieldsFor(c,a.sub).filter((f,i,arr)=>a.attrs[f.k]!=null && arr.findIndex(g=>g.k===f.k)===i).map(f=>`<dt>${f[S.lang]}</dt><dd>${esc(fmtAttr(f,a.attrs[f.k]))}</dd>`).join("");
+  document.title = a.title + " — Project";
   const sim = similarTo(a), other = ADS.filter(x=>x.seller===a.seller && x.id!==a.id).slice(0,8);
   openModal(`<div class="det">
     <div style="display:flex;flex-direction:column"><div class="ph" id="bigph" ${cover(a)} style="flex:1">${a.imgs.length?"":`<i data-lucide="${icOf(a)}"></i>`}</div>
@@ -193,7 +194,7 @@ function botReply(text){
   if (/продаёт|продает|актуал|disponibil|în vânzare/.test(s)) return ru?"Здравствуйте! Да, ещё продаётся 👍":"Bună ziua! Da, este încă disponibil 👍";
   if (/торг|скидк|дешевле|negocia|reducere/.test(s)) return ru?"Небольшой торг возможен при осмотре.":"Un mic discount este posibil la vizionare.";
   if (/посмотр|встрет|когда|văd|întâlni|când/.test(s)) return ru?"Можно сегодня после 18:00 или завтра днём. Вам удобно?":"Se poate azi după ora 18:00 sau mâine ziua. Vă convine?";
-  if (/доставк|отправ|livrare|trimite/.test(s)) return ru?"Да, могу отправить через Gata Доставку — оформляйте прямо в объявлении.":"Da, pot trimite prin Gata Livrare — plasați comanda direct din anunț.";
+  if (/доставк|отправ|livrare|trimite/.test(s)) return ru?"Да, могу отправить через Project Доставку — оформляйте прямо в объявлении.":"Da, pot trimite prin Project Livrare — plasați comanda direct din anunț.";
   return ru?"Здравствуйте! Всё в силе. Пишите, если есть вопросы, или звоните.":"Bună ziua! Totul e valabil. Scrieți dacă aveți întrebări sau sunați.";
 }
 function chatSend(adId, text){

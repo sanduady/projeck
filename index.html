@@ -4,7 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light only">
-<title>Gata.md — доска объявлений Молдовы</title>
+<title>Project — доска объявлений Молдовы</title>
+<meta name="description" content="Project — быстрая доска объявлений Молдовы: авто, недвижимость, электроника, работа и услуги. ИИ-поиск, удобные фильтры, бесплатная подача объявлений.">
+<meta property="og:title" content="Project — доска объявлений Молдовы">
+<meta property="og:description" content="Покупайте и продавайте быстро. ИИ-помощник найдёт самое выгодное предложение.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0f5c45">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f5c45'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' fill='none' stroke='%23c6f24e' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/styles.css">
@@ -15,16 +21,16 @@
   <i data-lucide="map-pin" style="width:14px;height:14px"></i>
   <select id="regionTop"></select>
   <span class="sp"></span>
-  <a href="#" class="hide-s" data-i="help">Помощь</a>
-  <a href="#" class="hide-s" data-i="rules">Правила</a>
+  <a href="#" class="hide-s" data-i="help" data-info="help">Помощь</a>
+  <a href="#" class="hide-s" data-i="rules" data-info="rules">Правила</a>
   <div class="lang"><button data-l="ru" class="on">RU</button><button data-l="ro">RO</button></div>
   <a href="#" id="loginLink" data-i="login">Войти</a>
 </div></div>
 
 <header><div class="wrap">
-  <a href="#" class="logo" id="home"><span class="mk"><i data-lucide="check"></i></span>gata<small>.md</small></a>
+  <a href="#" class="logo" id="home"><span class="mk"><i data-lucide="check"></i></span>Project</a>
   <button class="catbtn" id="allCats"><i data-lucide="layout-grid"></i><span data-i="allcats">Все категории</span></button>
-  <form class="search" id="sform"><input id="q" autocomplete="off" data-ip="search"><button class="go"><i data-lucide="search"></i><span data-i="find">Найти</span></button></form>
+  <div class="sw" id="sw"><form class="search" id="sform" role="search"><input id="q" autocomplete="off" data-ip="search" aria-label="Поиск"><button class="go" aria-label="Найти"><i data-lucide="search"></i><span data-i="find">Найти</span></button></form><div class="suggest" id="suggest" hidden></div></div>
   <button class="aibtn" id="aiBtn" type="button"><i data-lucide="sparkles"></i><span data-i="askai">Спросить ИИ</span></button>
   <button class="hicon" id="favBtn" title="♥"><i data-lucide="heart"></i><span class="badge" id="favN" hidden>0</span></button>
   <button class="hicon" id="msgBtn" data-it="msgs"><i data-lucide="message-circle"></i><span class="badge" id="msgN" hidden>0</span></button>
@@ -85,12 +91,12 @@
 
 <footer><div class="wrap">
   <div class="cols">
-    <div><div class="logo"><span class="mk"><i data-lucide="check"></i></span>gata<small>.md</small></div><p data-i="ftxt"></p></div>
-    <div><h4 data-i="f1"></h4><ul><li><a href="#" data-i="about"></a></li><li><a href="#" data-i="blog"></a></li><li><a href="#" data-i="privacy"></a></li><li><a href="#" data-i="terms"></a></li></ul></div>
-    <div><h4 data-i="f2"></h4><ul><li><a href="#" data-i="rules"></a></li><li><a href="#" data-i="safe"></a></li><li><a href="#" data-i="faq"></a></li><li><a href="#" data-i="report"></a></li></ul></div>
-    <div><h4 data-i="f3"></h4><ul><li><a href="#" data-i="promo"></a></li><li><a href="#" data-i="shops"></a></li><li><a href="#" data-i="ads"></a></li><li><a href="#">hello@gata.md</a></li></ul></div>
+    <div><div class="logo"><span class="mk"><i data-lucide="check"></i></span>Project</div><p data-i="ftxt"></p></div>
+    <div><h4 data-i="f1"></h4><ul><li><a href="#" data-i="about" data-info="about"></a></li><li><a href="#" data-i="blog" data-info="blog"></a></li><li><a href="#" data-i="privacy" data-info="privacy"></a></li><li><a href="#" data-i="terms" data-info="terms"></a></li></ul></div>
+    <div><h4 data-i="f2"></h4><ul><li><a href="#" data-i="rules" data-info="rules"></a></li><li><a href="#" data-i="safe" data-info="safe"></a></li><li><a href="#" data-i="faq" data-info="faq"></a></li><li><a href="#" data-i="report" data-info="report"></a></li></ul></div>
+    <div><h4 data-i="f3"></h4><ul><li><a href="#" data-i="promo" data-info="promo"></a></li><li><a href="#" data-i="shops" data-info="shops"></a></li><li><a href="#" data-i="ads" data-info="ads"></a></li></ul></div>
   </div>
-  <div class="cp"><span>© 2026 Gata.md</span><span data-i="demo"></span></div>
+  <div class="cp"><span>© 2026 Project</span><span data-i="demo"></span></div>
 </div></footer>
 
 <div class="drawer" id="drawer">
@@ -102,6 +108,7 @@
 
 <div class="ov" id="ov"><div class="md" id="md"></div></div>
 <div class="scrim" id="scrim"></div>
+<button class="totop" id="totop" aria-label="Наверх" hidden><i data-lucide="arrow-up"></i></button>
 <nav class="bnav" id="bnav">
   <button data-nav="home" class="on"><i data-lucide="house"></i><span data-i="nHome">Главная</span></button>
   <button data-nav="fav"><i data-lucide="heart"></i><span data-i="favs">Избранное</span><span class="badge" id="favN2" hidden>0</span></button>
@@ -119,6 +126,7 @@
 <script src="assets/js/app.js"></script>
 <script src="assets/js/ai.js"></script>
 <script src="assets/js/features.js"></script>
+<script src="assets/js/extras.js"></script>
 <script src="assets/js/events.js"></script>
 <script src="assets/js/main.js"></script>
 </body>
