@@ -130,7 +130,7 @@ function openAd(id){
       ${fmtPrice(a)}
       ${a.val>0&&a.price>0?`<div class="mkt">${t("market")}: ~${fmtN(a.val)} ${curS(a.cur)}</div>`:""}
       <h2>${esc(a.title)}</h2>
-      <p style="color:var(--ink2)">${esc(a.desc)}</p>
+      <p class="fulldesc">${esc(a.desc)}</p>
       <dl class="kv">
         <dt>${t("category")}</dt><dd>${c[S.lang]} · ${subName(c,a.sub)}</dd>${attrs}
         <dt>${t("condition")}</dt><dd>${t(a.cond)}</dd>
