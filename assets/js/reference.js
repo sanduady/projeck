@@ -72,17 +72,62 @@ const CAR_DB = Object.fromEntries(Object.entries({
  "Toyota":"Auris=E150 2006–2012,E180 2012–2018;Avensis=T250 2003–2009,T270 2009–2018;C-HR;Camry=XV40 2006–2011,XV50 2011–2017,XV70 2017–;Corolla=E120 2000–2007,E150 2006–2013,E170 2013–2019,E210 2019–;Highlander;Hilux;Land Cruiser=J100 1998–2007,J200 2007–2021,J300 2021–;Land Cruiser Prado=J120 2002–2009,J150 2009–2024;Prius=XW20 2003–2009,XW30 2009–2015,XW50 2015–2022;RAV4=XA30 2005–2012,XA40 2012–2018,XA50 2018–;Yaris=XP90 2005–2011,XP130 2011–2020,XP210 2020–",
  "Volkswagen":"Arteon;Caddy;Golf=Mk5 2003–2008,Mk6 2008–2012,Mk7 2012–2019,Mk8 2019–;ID.3;ID.4;Jetta=Mk5 2005–2010,Mk6 2010–2018;Passat=B5 1996–2005,B6 2005–2010,B7 2010–2014,B8 2014–2023;Passat CC;Polo=Mk4 2001–2009,Mk5 2009–2017,Mk6 2017–;Sharan;T-Roc;Tiguan=I 2007–2016,II 2016–2024;Touareg=I 2002–2010,II 2010–2018,III 2018–;Touran=1T 2003–2015,5T 2015–;Transporter",
  "Volvo":"S40;S60;S80;S90;V40;V50;V60;V70;V90;XC40;XC60=I 2008–2017,II 2017–;XC70;XC90=I 2002–2014,II 2014–",
+ "Aito":"M5;M7;M9",
+ "Aston Martin":"DB11;DBX;Vantage",
+ "Avatr":"11;12",
+ "BAIC":"BJ40;X35",
+ "Bentley":"Bentayga;Continental GT;Flying Spur",
+ "Brilliance":"V5",
+ "Buick":"Enclave;Encore",
+ "Changan":"CS55 Plus;CS75 Plus;UNI-K;UNI-V",
+ "Daihatsu":"Sirion;Terios",
+ "Deepal":"L07;S7",
+ "Denza":"D9;N7",
+ "Dongfeng":"580;Aeolus",
+ "Exeed":"TXL;VX",
+ "Ferrari":"488;F8;Purosangue;Roma;SF90",
+ "GAC":"Aion S;GS3;GS8",
+ "GMC":"Acadia;Sierra;Yukon",
+ "Hongqi":"E-HS9;H5;H9",
+ "Hummer":"EV;H2;H3",
+ "Isuzu":"D-Max;Trooper",
+ "JAC":"J7;JS4",
+ "Jaecoo":"J7",
+ "Jetour":"Dashing;X70",
+ "Lamborghini":"Aventador;Huracan;Urus",
+ "Lancia":"Delta;Ypsilon",
+ "Leapmotor":"C10;C11",
+ "Li Auto":"L7;L8;L9",
+ "Lifan":"Solano;X60",
+ "Lotus":"Eletre;Emira",
+ "Lynk & Co":"01;05;09",
+ "Mahindra":"Scorpio;XUV500",
+ "Maserati":"Ghibli;Grecale;Levante;Quattroporte",
+ "McLaren":"720S;Artura;GT",
+ "Omoda":"C5;S5",
+ "Polestar":"2;3;4",
+ "Ravon":"Gentra;Nexia R3;R2",
+ "Rolls-Royce":"Cullinan;Ghost;Phantom;Wraith",
+ "Tank":"300;500",
+ "Voyah":"Dream;Free",
+ "Xpeng":"G6;G9;P7",
+ "Zeekr":"001;7X;X",
+ "Zotye":"T600",
+ "ЕРАЗ":"762",
+ "ИЖ":"2126 Ода;2715",
+ "ЛуАЗ":"969",
+ "РАФ":"2203",
  "ГАЗ":"24 Волга;3110;31105;Газель;Соболь",
  "Москвич":"2140;2141;412",
  "УАЗ":"469;Буханка;Патриот;Хантер",
  "ЗАЗ":"Sens;Vida;Запорожец;Таврия"
 }).map(([b,s])=>[b, parseModels(s)]));
-const CAR_BRANDS = Object.keys(CAR_DB);
+const CAR_BRANDS = Object.keys(CAR_DB).sort((a,b)=>a.localeCompare(b,"ru"));
 const CAR_MODELS = Object.fromEntries(CAR_BRANDS.map(b=>[b,Object.keys(CAR_DB[b])]));
 const CAR_GENS = {}; CAR_BRANDS.forEach(b=>Object.entries(CAR_DB[b]).forEach(([m,gs])=>{ if (gs.length) CAR_GENS[m] = gs.map(([g,y])=>[g,`${g} (${y})`,`${g} (${y})`]); }));
-const CAR_CLASS = b => ["Audi","BMW","Mercedes-Benz","Lexus","Tesla","Porsche","Land Rover","Jaguar","Volvo","Infiniti","Genesis","Cadillac","Lincoln","Acura","DS"].includes(b) ? "prem"
-  : ["Dacia","Lada (ВАЗ)","Daewoo","Chery","Geely","ГАЗ","УАЗ","ЗАЗ","Москвич","Fiat","Great Wall","Haval","Rover","Smart"].includes(b) ? "bud" : "mid";
-const SUV_RE = /^(X[1-7]|Q[2-8]|GL[ABCES]|ML|G-Class|Touareg|Tiguan|T-Roc|ID\.4|Kodiaq|Karoq|Kamiq|Yeti|Enyaq|Duster|Jogger|Tucson|Santa Fe|ix35|Kona|Sportage|Sorento|Niro|Soul|Kuga|EcoSport|Edge|Explorer|Ranger|RAV4|Land Cruiser.*|Highlander|Hilux|C-HR|RX|NX|GX|LX|UX|Model [XY]|CR-V|HR-V|Pilot|CX-\d+|Qashqai|X-Trail|Juke|Murano|Navara|Pathfinder|Patrol|Outlander|ASX|Eclipse Cross|Pajero.*|L200|XC\d+|3008|5008|2008|C5 Aircross|Captur|Kadjar|Koleos|Antara|Mokka|Grandland|Cayenne|Macan|Range Rover.*|Defender|Discovery.*|Freelander|[EF]-Pace|Cherokee|Grand Cherokee|Compass|Renegade|Wrangler|Countryman|FX|QX\d+|Actyon|Korando|Kyron|Rexton|Tivoli|Forester|Outback|XV|Grand Vitara|Jimny|Vitara|SX4|Escalade|SRX|XT5|Navigator|MDX|RDX|GV\d+|Atto 3|Song Plus|Tang|Tiggo.*|Atlas|Coolray|Monjaro|Tugella|Dargo|F7|H6|Jolion|Hover|HS|ZS|Niva.*|469|Патриот|Хантер|Arona|Ateca|Tarraco|Formentor|Trax|Captiva|Durango|Journey|DS 7)$/;
+const CAR_CLASS = b => ["Audi","BMW","Mercedes-Benz","Lexus","Tesla","Porsche","Land Rover","Jaguar","Volvo","Infiniti","Genesis","Cadillac","Lincoln","Acura","DS","Ferrari","Lamborghini","Maserati","Bentley","Rolls-Royce","Aston Martin","McLaren","Lotus","Zeekr","Li Auto","Polestar","Hummer","Voyah","Denza","Avatr","Aito","Hongqi","GMC"].includes(b) ? "prem"
+  : ["Dacia","Lada (ВАЗ)","Daewoo","Chery","Geely","ГАЗ","УАЗ","ЗАЗ","Москвич","Fiat","Great Wall","Haval","Rover","Smart","Ravon","Lifan","Zotye","Brilliance","ЕРАЗ","ИЖ","ЛуАЗ","РАФ","Daihatsu","Dongfeng","JAC","Changan"].includes(b) ? "bud" : "mid";
+const SUV_RE = /^(X[1-7]|Q[2-8]|GL[ABCES]|ML|G-Class|Touareg|Tiguan|T-Roc|ID\.4|Kodiaq|Karoq|Kamiq|Yeti|Enyaq|Duster|Jogger|Tucson|Santa Fe|ix35|Kona|Sportage|Sorento|Niro|Soul|Kuga|EcoSport|Edge|Explorer|Ranger|RAV4|Land Cruiser.*|Highlander|Hilux|C-HR|RX|NX|GX|LX|UX|Model [XY]|CR-V|HR-V|Pilot|CX-\d+|Qashqai|X-Trail|Juke|Murano|Navara|Pathfinder|Patrol|Outlander|ASX|Eclipse Cross|Pajero.*|L200|XC\d+|3008|5008|2008|C5 Aircross|Captur|Kadjar|Koleos|Antara|Mokka|Grandland|Cayenne|Macan|Range Rover.*|Defender|Discovery.*|Freelander|[EF]-Pace|Cherokee|Grand Cherokee|Compass|Renegade|Wrangler|Countryman|FX|QX\d+|Actyon|Korando|Kyron|Rexton|Tivoli|Forester|Outback|XV|Grand Vitara|Jimny|Vitara|SX4|Escalade|SRX|XT5|Navigator|MDX|RDX|GV\d+|Atto 3|Song Plus|Tang|Tiggo.*|Atlas|Coolray|Monjaro|Tugella|Dargo|F7|H6|Jolion|Hover|HS|ZS|Niva.*|469|Патриот|Хантер|Arona|Ateca|Tarraco|Formentor|Trax|Captiva|Durango|Journey|DS 7|Urus|Purosangue|Bentayga|Cullinan|DBX|Eletre|Grecale|Levante|E-HS9|H9|L7|L8|L9|G6|G9|Free|Dream|7X|M5|M7|M9|C10|C11|CS55 Plus|CS75 Plus|UNI-K|TXL|VX|GS8|JS4|Dashing|X70|BJ40|X35|Yukon|Acadia|Enclave|Encore|H2|H3|D-Max|Trooper|Scorpio|XUV500|Terios|X60|T600|969)$/;
 const VAN_RE = /^(Touran|Sharan|Zafira|Meriva|Kangoo|Scenic|Grand Scenic|Galaxy|S-Max|C-Max|Lodgy|Dokker|Berlingo|Partner|Combo|Caddy|Carens|Orlando|Alhambra|Altea|Roomster|C4 Picasso|Doblo|Qubo|Largus|V-Class|Vito|Voyager|Pacifica|Transporter|Trafic|Vivaro|Expert|Jumpy)$/;
 const HATCH_RE = /^(Golf|Polo|ID\.3|Fabia|Clio|Megane|Ceed|Focus|Fiesta|Astra|Corsa|1 Series|A-Class|A1|A3|Sandero|Prius|Auris|Yaris|i10|i20|i30|Picanto|Rio|Leaf|Micra|Note|Tiida|Jazz|Civic|2|3|Swift|Baleno|Ignis|Colt|Space Star|107|206|207|208|307|308|C1|C3|C4|Hatch|Clubman|500|Panda|Punto|Grande Punto|Bravo|Ibiza|Leon|Born|Spark|Aveo|Matiz|ForFour|ForTwo|Zoe|Spring|Dolphin|MG4|Kalina|Granta|2109|21099|2112|2114|i3|CT|V40|DS 3|DS 4|25|45|Impreza|Ioniq|Bolt|Insight)$/;
 

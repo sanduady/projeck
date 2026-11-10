@@ -52,7 +52,7 @@ function add(o){
     add({cat:"auto",sub:2,title:`${b} ${m}, ${year}`,cur:"EUR",price:r100(val*(.85+R()*.3)),val,cond:"used",attrs:{brand:b,year,mileage:(2025-year)*ri(2,6)*1000}});}
   [["Микроавтобус Mercedes Sprinter 516, 20 мест",3,"EUR",21500],["Volkswagen Crafter пассажирский 2017",3,"EUR",18900],["Автобус Iveco Daily 50C, 2015",3,"EUR",16500],["Экскаватор-погрузчик JCB 3CX 2012",4,"EUR",38000],["Мини-погрузчик Bobcat S175",4,"EUR",17500],["Прицеп легковой 2×1.3 м, документы",5,"MDL",14000],["Прицеп для лодки, усиленный",5,"MDL",19000],
    ["Фара левая Skoda Octavia A7, оригинал",6,"MDL",2300],["Двигатель 1.9 TDI в сборе, VW",6,"MDL",18000],["Тормозные колодки Bosch, Passat B8",6,"MDL",650],["Аккумулятор Varta 74Ah, новый",6,"MDL",1900],["Коробка передач DSG7, Golf 7",6,"MDL",12500],
-   ["Зимние шины Michelin 205/55 R16, 4 шт",7,"MDL",5200],["Литые диски R17 5×112, оригинал Audi",7,"MDL",8900],["Летние шины Continental 225/45 R17",7,"MDL",6800],["Моторная лодка Казанка + мотор Yamaha 30",8,"EUR",4200],["Гидроцикл Sea-Doo Spark 2019",8,"EUR",6900]]
+   ["Зимние шины Michelin 205/55 R16, 4 шт",7,"MDL",5200],["Литые диски R17 5×112, оригинал Audi",7,"MDL",8900],["Летние шины Continental 225/45 R17",7,"MDL",6800],["Моторная лодка Казанка + мотор Yamaha 30",8,"EUR",4200],["Автодом Fiat Ducato, 6 спальных мест, 2016",9,"EUR",38500],["Кемпер Volkswagen California, 2014",9,"EUR",29900],["Прицеп-дача, 4 места, с кухней",9,"EUR",7900],["Гидроцикл Sea-Doo Spark 2019",8,"EUR",6900]]
    .forEach(([t,sub,cur,price])=>add({cat:"auto",sub,title:t,cur,price,cond:/новый|оригинал/.test(t)&&R()<.5?"new":"used"}));
 })();
 // --- Real estate
@@ -257,7 +257,7 @@ function illFor(a){
   const col = PALETTE[a.id % PALETTE.length], t = a.title.toLowerCase();
   const m = {
     auto:[()=>["car",col,a.attrs.body==="suv"||a.attrs.body==="van"?"suv":a.attrs.body==="sedan"?"sedan":"hatch"],()=>["van",col],()=>["moto",col],()=>["van","#f2c94c"],()=>["tractor","#f5a524"],()=>["van","#8f989f"],
-      ()=>/шин|колод|аккум/.test(t)?["tire"]:["gear"],()=>["tire"],()=>["boat",col]],
+      ()=>/шин|колод|аккум/.test(t)?["tire"]:["gear"],()=>["tire"],()=>["boat",col],()=>["van","#e9ebee"]],
     real:[()=>a.attrs.building==="new"&&a.id%2?["building"]:["flat",["#efe2d0","#dce9f2","#e7efe0","#f3e3e3"][a.id%4]],()=>["house"],()=>["flat",["#dce9f2","#efe2d0"][a.id%2]],()=>["flat","#f3e3e3"],()=>["land"],()=>["building"],()=>["house"]],
     job:[()=>/продав|кассир|промоут/.test(t)?["register"]:/водит|курьер/.test(t)?["van",col]:/разработ|developer|it|qa/.test(t)?["laptop","#2b2b2b"]:/повар/.test(t)?["coffee"]:/плиточ|сборк|бригад/.test(t)?["drill","#f5a524"]:["briefcase","#5b4636"]],
     elec:[()=>["phone",["#1d1d22","#5b4a7a","#1f2a4a","#d9dce0","#2f6b4f"][a.id%5]],()=>["laptop",a.attrs.brand==="Apple"?"#c9ced3":"#2b2b2b"],()=>["pc"],()=>["tablet","#2b2b2b"],()=>["tv"],

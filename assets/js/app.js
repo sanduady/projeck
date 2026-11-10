@@ -105,9 +105,16 @@ function renderStatic(){
 const counts = () => { const m={}; ADS.forEach(a=>{ m[a.cat]=(m[a.cat]||0)+1; m[a.cat+":"+a.sub]=(m[a.cat+":"+a.sub]||0)+1; }); return m; };
 function renderCats(){
   const n = counts();
-  $("#cats").innerHTML = CATS.map(c => `<a href="#" class="cat ${S.cat===c.id?"on":""}" data-cat="${c.id}">
-    <span class="ic" style="background:${c.c}18;color:${c.c}"><i data-lucide="${c.ic}"></i></span>${c[S.lang]}<span class="n">${n[c.id]||0}</span></a>`).join("");
   const c = catOf(S.cat);
+  // без выбранной категории — плитки категорий; с категорией — плитки её подразделов
+  $("#cats").classList.toggle("subs", !!c);
+  $("#cats").innerHTML = c
+    ? `<button class="cat back" data-cat-back><span class="ic"><i data-lucide="arrow-left"></i></span>${t("allcats")}</button>
+       <div class="subhead"><span class="ic" style="background:${c.c}18;color:${c.c}"><i data-lucide="${c.ic}"></i></span><div><b>${c[S.lang]}</b><small>${n[c.id]||0} ${t("adsN")}</small></div></div>
+       <button class="cat ${S.sub===null?"on":""}" data-subtile=""><span class="ic" style="background:${c.c}18;color:${c.c}"><i data-lucide="layout-grid"></i></span>${t("allInCat")}<span class="n">${n[c.id]||0}</span></button>` +
+      c.subs.map((sb,i)=>`<button class="cat ${S.sub===i?"on":""}" data-subtile="${i}"><span class="ic" style="background:${c.c}18;color:${c.c}"><i data-lucide="${(SIC[c.id]||[])[i]||c.ic}"></i></span>${subName(c,i)}<span class="n">${n[c.id+":"+i]||0}</span></button>`).join("")
+    : CATS.map(cc => `<a href="#" class="cat" data-cat="${cc.id}">
+    <span class="ic" style="background:${cc.c}18;color:${cc.c}"><i data-lucide="${cc.ic}"></i></span>${cc[S.lang]}<span class="n">${n[cc.id]||0}</span></a>`).join("");
   $("#subbar").innerHTML = c ? `<button class="chip ${S.sub===null?"on":""}" data-sub="">${t("allIn")}<small>${n[c.id]||0}</small></button>` +
     c.subs.map((s,i)=>`<button class="chip ${S.sub===i?"on":""}" data-sub="${i}">${subName(c,i)}<small>${n[c.id+":"+i]||0}</small></button>`).join("") : "";
   renderAdv();

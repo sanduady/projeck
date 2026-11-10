@@ -5,6 +5,7 @@ function resetState(){
   $$("#cond .chip").forEach(x=>x.classList.toggle("on", x.dataset.v==="all")); $("#sort").value="new";
 }
 const go = (patch) => { Object.assign(S, {shown:24}, patch); renderCats(); render(); };
+const toCats = () => { const h = document.querySelector("header").offsetHeight, y = $(".hero").getBoundingClientRect().top + window.scrollY - h; if (window.scrollY > y+40) window.scrollTo({top:Math.max(0,y), behavior:"smooth"}); };
 const toMain = () => { const h = document.querySelector("header").offsetHeight;
   const y = document.querySelector(".main").getBoundingClientRect().top + window.scrollY - h - 8;
   if (Math.abs(window.scrollY - y) > 4) window.scrollTo({top:Math.max(0,y), behavior:"smooth"}); };
@@ -18,7 +19,10 @@ document.addEventListener("click", e => {
   const mc = e.target.closest("[data-mc]");
   if (mc){ closeModal(); go({cat:mc.dataset.mc, sub: mc.dataset.ms!=null? +mc.dataset.ms : null, attrs:{}, ids:null, favOnly:false}); toMain(); return; }
   const cat = e.target.closest("[data-cat]");
-  if (cat){ e.preventDefault(); const same=S.cat===cat.dataset.cat; go({cat: same?null:cat.dataset.cat, sub:null, attrs:{}, ids:null, favOnly:false}); toMain(); return; }
+  if (cat){ e.preventDefault(); go({cat:cat.dataset.cat, sub:null, attrs:{}, ids:null, favOnly:false}); toCats(); return; }
+  if (e.target.closest("[data-cat-back]")){ go({cat:null, sub:null, attrs:{}}); toCats(); return; }
+  const st = e.target.closest("[data-subtile]");
+  if (st){ const v = st.dataset.subtile===""?null:+st.dataset.subtile; go({sub:v, attrs:{}}); toMain(); return; }
   const sub = e.target.closest("[data-sub]");
   if (sub){ const v = sub.dataset.sub===""?null:+sub.dataset.sub; const keep={}; const c=catOf(S.cat);
     for (const k in S.attrs) if (fieldsFor(c,v).some(f=>f.k===k)) keep[k]=S.attrs[k];

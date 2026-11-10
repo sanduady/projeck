@@ -552,3 +552,18 @@ details.fg>summary b{background:var(--brand);color:#fff;font-size:11px;border-ra
 .mchips.many{max-height:180px}
 .mchips .chip[hidden]{display:none}
 label.f .nsel{background:var(--brand);color:#fff;font-size:10.5px;border-radius:8px;padding:0 6px;margin-left:4px}
+
+/* ===== плитки подразделов ===== */
+.cats.subs{animation:pop .2s ease-out}
+.cats .subhead{grid-column:span 3;display:flex;align-items:center;gap:12px;padding:8px 10px}
+.cats .subhead .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center}
+.cats .subhead .ic svg{width:26px;height:26px}
+.cats .subhead b{display:block;font-size:20px;letter-spacing:-.3px}
+.cats .subhead small{color:var(--mute);font-size:13px}
+.cats .cat.back{color:var(--ink2)}
+.cats .cat.back .ic{background:var(--bg);color:var(--ink)}
+.cats.subs .cat{border:1px solid var(--line);background:#fff}
+.cats.subs .cat:hover{border-color:var(--brand);background:#f6fbf8}
+.cats.subs .cat.on{outline:2px solid var(--brand);background:#e8f5ec}
+@media (max-width:1000px){.cats .subhead{grid-column:span 3}}
+@media (max-width:640px){.cats .subhead{grid-column:1/-1;order:-1}.cats .cat.back{order:-2}.cats.subs{gap:6px}}

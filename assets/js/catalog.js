@@ -27,7 +27,7 @@ const SIZES=["XS","S","M","L","XL","XXL"];
 
 const CATS = [
  {id:"auto",ic:"car",c:"#2563eb",ru:"Транспорт",ro:"Transport",
-  subs:[["Легковые","Autoturisme"],["Грузовые","Camioane"],["Мото","Moto"],["Автобусы и микроавтобусы","Autobuze și microbuze"],["Спецтехника","Tehnică specială"],["Прицепы","Remorci"],["Запчасти","Piese auto"],["Шины и диски","Anvelope și jante"],["Водный транспорт","Transport pe apă"]],
+  subs:[["Легковые","Autoturisme"],["Грузовые","Camioane"],["Мото","Moto"],["Автобусы и микроавтобусы","Autobuze și microbuze"],["Спецтехника","Tehnică specială"],["Прицепы","Remorci"],["Запчасти","Piese auto"],["Шины и диски","Anvelope și jante"],["Водный транспорт","Transport pe apă"],["Автодома и кемперы","Autorulote"]],
   fields:[
    {k:"brand",ru:"Марка",ro:"Marca",t:"sel",g:"main",only:[0],opts:CAR_BRANDS},
    {k:"model",ru:"Модель",ro:"Model",t:"sel",g:"main",only:[0],dep:"brand",by:CAR_MODELS},
@@ -37,7 +37,8 @@ const CATS = [
    {k:"brand",ru:"Марка",ro:"Marca",t:"sel",g:"main",only:[2],opts:MOTO_BRANDS},
    {k:"mtype",ru:"Тип мотоцикла",ro:"Tip motocicletă",t:"multi",g:"main",only:[2],opts:[["sport","Спортивный","Sport"],["naked","Нейкед","Naked"],["enduro","Эндуро","Enduro"],["cruiser","Круизер","Cruiser"],["touring","Туристический","Touring"],["scooter","Скутер","Scuter"]]},
    {k:"body",ru:"Тип кузова",ro:"Caroserie",t:"multi",g:"main",only:[0],opts:BODY},
-   {k:"year",ru:"Год выпуска",ro:"Anul fabricației",t:"rng",g:"main",only:[0,1,2,3,4,8],gen:[2005,2024]},
+   {k:"year",ru:"Год выпуска",ro:"Anul fabricației",t:"rng",g:"main",only:[0,1,2,3,4,8,9],gen:[2005,2024]},
+   {k:"berths",ru:"Спальных мест",ro:"Locuri de dormit",t:"rng",g:"specs",only:[9],gen:[2,7]},
    {k:"mileage",ru:"Пробег",ro:"Rulaj",t:"rng",u:"км",g:"main",only:[0,1,2,3]},
    {k:"fuel",ru:"Топливо",ro:"Combustibil",t:"multi",g:"tech",only:[0,1,3],opts:FUEL},
    {k:"engine",ru:"Объём двигателя",ro:"Capacitate motor",t:"rng",u:"л",g:"tech",only:[0,1,3],step:.1},
@@ -75,6 +76,7 @@ const CATS = [
    YN("notfirst","Не первый этаж","Nu primul etaj","specs",[0,2]),
    YN("notlast","Не последний этаж","Nu ultimul etaj","specs",[0,2]),
    {k:"walls",ru:"Материал стен",ro:"Material pereți",t:"multi",g:"specs",only:[0,1],opts:WALLS},
+   {k:"built",ru:"Год постройки",ro:"Anul construcției",t:"rng",g:"specs",only:[0,1,2],gen:[1960,2025]},
    {k:"series",ru:"Серия дома",ro:"Seria blocului",t:"multi",g:"specs",only:[0,2],opts:HOUSE_SERIES},
    {k:"state",ru:"Ремонт",ro:"Starea",t:"multi",g:"specs",only:[0,1,2],opts:RSTATE},
    {k:"land",ru:"Участок",ro:"Teren",t:"rng",u:"соток",g:"main",only:[1,4]},
@@ -87,6 +89,7 @@ const CATS = [
    YN("furniture","С мебелью","Mobilat","house",[0,2,3],.5),
    YN("appliances","С техникой","Cu tehnică","house",[0,2,3],.45),
    YN("gas","Газ","Gaz","house",[1,4],.6),
+   YN("garden","Сад / двор","Grădină / curte","house",[0,1],.3),
    YN("water","Вода и канализация","Apă și canalizare","house",[1,4],.6),
    YN("pets","Можно с животными","Se acceptă animale","terms",[2,3],.3),
    YN("owner","От собственника","De la proprietar","terms",[0,1,2,3,4,5,6],.6),
@@ -97,7 +100,9 @@ const CATS = [
    {k:"sphere",ru:"Сфера",ro:"Domeniu",t:"multi",g:"main",opts:[["sales","Продажи","Vânzări"],["it","IT","IT"],["transport","Транспорт и логистика","Transport și logistică"],["food","Общепит","HoReCa"],["build","Строительство","Construcții"],["office","Офис","Birou"],["medical","Медицина","Medicină"],["edu","Образование","Educație"]]},
    {k:"schedule",ru:"График",ro:"Program",t:"multi",g:"main",opts:[["full","Полный день","Normă întreagă"],["shift","Сменный","În ture"],["flex","Гибкий","Flexibil"],["part","Частичная занятость","Parțial"]]},
    {k:"exp",ru:"Опыт работы",ro:"Experiență",t:"multi",g:"main",opts:[["none","Без опыта","Fără experiență"],["1","1–3 года","1–3 ani"],["3","3–6 лет","3–6 ani"],["6","Более 6 лет","Peste 6 ani"]]},
-   YN("remote","Удалённая работа","Lucru la distanță","terms",null,.2),
+   {k:"wformat",ru:"Формат работы",ro:"Format de lucru",t:"multi",g:"main",opts:[["office","В офисе / на месте","La birou"],["hybrid","Гибрид","Hibrid"],["remote","Удалённо","La distanță"]]},
+   {k:"contract",ru:"Тип договора",ro:"Tip contract",t:"multi",g:"terms",opts:[["perm","Постоянный","Nedeterminat"],["temp","Срочный","Determinat"],["intern","Стажировка","Stagiu"],["freelance","Фриланс / разовые","Freelance"]]},
+   {k:"edu",ru:"Образование",ro:"Studii",t:"multi",g:"terms",opts:[["none","Не важно","Fără cerințe"],["school","Среднее","Medii"],["college","Среднее специальное","Colegiu"],["uni","Высшее","Superioare"]]},
    YN("official","Официальное оформление","Angajare oficială","terms",null,.7),
    YN("students","Подходит студентам","Potrivit pentru studenți","terms",null,.25)]},
  {id:"elec",ic:"smartphone",c:"#0891b2",ru:"Электроника",ro:"Electronice",
@@ -227,7 +232,12 @@ const CATS = [
   subs:[["Коллекции","Colecții"],["Билеты","Bilete"],["Другое","Altele"]]}
 ];
 CATS.forEach(c=>c.fields=c.fields||[]);
-const SIC={auto:["car","truck","bike","bus","tractor","caravan","wrench","disc","sailboat"],real:["building","house","key","bed","trees","store","warehouse"],
- elec:["smartphone","laptop","monitor","tablet","tv","headphones","camera","gamepad-2","cpu"]};
+const SIC={auto:["car","truck","bike","bus","tractor","container","wrench","disc","sailboat","caravan"],real:["building","house","key","bed","trees","store","warehouse"],
+ job:["briefcase","file-user","clock"],elec:["smartphone","laptop","monitor","tablet","tv","headphones","camera","gamepad-2","cpu"],
+ home:["sofa","chef-hat","lamp","frame","flower-2","bed-double"],appl:["refrigerator","washing-machine","flame","air-vent","wind","coffee"],
+ cloth:["shirt","user-round","footprints","shopping-bag"],kids:["baby","armchair","toy-brick","bed-single","shirt"],
+ build:["brick-wall","drill","bath","plug-zap","door-open"],serv:["paint-roller","truck","graduation-cap","scissors","code","wrench","spray-can"],
+ pets:["dog","cat","bird","fish","bone"],sport:["bike","dumbbell","tent","snowflake","guitar","book-open","anchor"],
+ agro:["tractor","wheat","beef","sprout","package"],biz:["factory","handshake","store"],free:["gift","sofa","heart"],misc:["gem","ticket","package"]};
 const icOf = a => (SIC[a.cat]||[])[a.sub] || catOf(a.cat).ic;
 
