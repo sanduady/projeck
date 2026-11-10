@@ -1,5 +1,5 @@
 /* Project — состояние, поиск, отрисовка, окна */
-const S = {lang:"ru",cat:null,sub:null,q:"",reg:"all",min:"",max:"",cur:"MDL",cond:"all",photo:false,priv:false,deal:false,delivery:false,verified:false,attrs:{},ids:null,sort:"new",view:"grid",favOnly:false,shown:24};
+const S = {lang:"ru",cat:null,sub:null,q:"",reg:"all",age:"all",min:"",max:"",cur:"MDL",cond:"all",photo:false,priv:false,deal:false,delivery:false,verified:false,attrs:{},ids:null,sort:"new",view:"grid",favOnly:false,shown:24};
 const FAV = new Set();
 try{ JSON.parse(localStorage.getItem("gata_fav")||"[]").forEach(x=>FAV.add(x)); }catch(e){}
 const saveFav = () => { try{ localStorage.setItem("gata_fav",JSON.stringify([...FAV])); }catch(e){} };
@@ -12,8 +12,9 @@ const regName = (id,lang=S.lang) => { const r = REG.find(r=>r[0]===id); return r
 const esc = s => String(s).replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
 const fieldsFor = (c,sub) => c ? c.fields.filter(f => !f.only || (sub!==null && sub!==undefined && f.only.includes(sub))) : [];
 const fmtN = n => Math.round(n).toLocaleString("ru-RU");
-const curS = c => c==="EUR"?"€":(S.lang==="ru"?"лей":"lei");
-const mdl = a => a.cur==="EUR" ? a.price*RATE : a.price;
+const curS = c => c==="MDL"||!CURRENCIES[c] ? (S.lang==="ru"?"лей":"lei") : CURRENCIES[c].sym;
+const rateOf = c => (CURRENCIES[c]||CURRENCIES.MDL).rate;
+const mdl = a => a.price*rateOf(a.cur);
 const norm = x => String(x).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 const isDeal = a => a.val>0 && a.price>0 && a.price <= a.val*0.9;
 const fieldOpts = (f, attrs) => (f.opts || (f.by ? (attrs && attrs[f.dep] != null ? f.by[attrs[f.dep]] : Object.values(f.by).flat()) : [])) || [];
@@ -33,20 +34,29 @@ function fmtAttr(f,v,lang=S.lang){
     case "engine": return (+v).toFixed(1)+(ru?" л":" l");
     case "power": return v+(ru?" л.с.":" CP");
     case "agem": return v+(ru?" мес.":" luni");
+    case "dage": return v+(ru?" лет":" ani");
+    case "nights": return v+(ru?" ноч.":" nopți");
     case "ram": return v+" GB";
+    case "depart": case "ret": case "edate": return /^\d{4}-\d\d-\d\d$/.test(v) ? new Date(v+"T12:00").toLocaleDateString(ru?"ru-RU":"ro-RO",{day:"numeric",month:"long",year:"numeric"}) : v;
+    case "vram": case "ramgb": return v+(ru?" ГБ":" GB");
+    case "bus": return v+(ru?" бит":" biți");
+    case "cores": return v+(ru?" ядер":" nuclee");
+    case "threads": return v+(ru?" потоков":" fire");
   }
   if (f.t==="sel"||f.t==="multi"||f.t==="color") return lbl(fieldOpts(f), v, lang);
   return v + (f.u ? " "+f.u : "");
 }
-const SPEC = {auto:["year","mileage","engine","fuel","gearbox","cc","ptype","ttype","radius","season"], real:["rooms","area","floor","land","ctype","gtype"],
-  elec:["storage","ram","lcpu","cpu","gpu","screen","panel","platform","part"], job:["schedule","sphere"], pets:["breed","agem"], cloth:["size","shoe","season"]};
+const SPEC = {auto:["year","mileage","engine","fuel","gearbox","cc","ptype","ttype2","season","radius"], real:["rooms","area","floor","land","ctype","gtype","guests"],
+  phones:["storage","ram","diag","battery","acc"], comp:["lcpu","cpu","gpu","ram","storage","vram","vtype","bus","cores","threads","socket","chipset","ramgb","ramtype","dtype","dcap","watt","cert","mres","refresh","mpanel","prtype","ntype","cmodel"],
+  av:["screen","panel","res","atype","htype","phtype","vres"], job:["schedule","wformat","sphere","exp"], pets:["breed","agem","sex","goods","plant"], cloth:["size","shoe","season","jtype","metal"],
+  tour:["depart","ret","to","nights","meals","edate","venue","carrier","gear","rest"], dating:["dage","goal"], music:["gtype","ktype","stype","mbrand"], beauty:["btype","ptype","vol","dtype"]};
 function specLine(a, n){
   const c = catOf(a.cat), fs = fieldsFor(c,a.sub), keys = SPEC[a.cat];
   let list = keys ? keys.map(k=>fs.find(f=>f.k===k)).filter(Boolean) : fs.filter(f=>!["brand","model","gen","sector","opts"].includes(f.k) && f.t!=="bool");
   list = list.filter((f,i,arr)=>arr.indexOf(f)===i && hasVal(a.attrs[f.k]) && !Array.isArray(a.attrs[f.k]));
   return list.slice(0, n || (a.cat==="auto"&&a.sub===0?4:3)).map(f=>fmtAttr(f,a.attrs[f.k])).join(" · ");
 }
-const fmtPrice = a => (a.cat==="free"||(a.price===0 && !["serv","job"].includes(a.cat))) ? `<span class="price free">${t("free")}</span>` :
+const fmtPrice = a => a.cat==="free" ? `<span class="price free">${t("free")}</span>` : a.cat==="dating" ? `<span class="price">${t("datingP")}</span>` :
   a.price===0 ? `<span class="price">${t("neg")}</span>` : `<span class="price">${fmtN(a.price)} ${curS(a.cur)}</span>`;
 const fmtDate = ts => { const d = Math.floor((Date.now()-ts)/864e5), hm = new Date(ts).toTimeString().slice(0,5);
   return d===0 ? `${t("today")}, ${hm}` : d===1 ? `${t("yest")}, ${hm}` : `${d} ${t("ago")}`; };
@@ -59,14 +69,14 @@ function cover(a){
 /* =================== FILTER ENGINE (используется и сайтом, и ИИ) =================== */
 function query(p){
   const q = norm(p.q||"").trim().split(/\s+/).filter(Boolean);
-  const k = p.cur==="EUR"?RATE:1;
+  const k = rateOf(p.cur||"MDL"), since = p.age && p.age!=="all" ? Date.now() - (+p.age)*864e5 : null;
   const min = p.min===""||p.min==null ? null : +p.min*k, max = p.max===""||p.max==null ? null : +p.max*k;
   let r = ADS.filter(a =>
     (!p.ids || p.ids.includes(a.id)) && (!p.favOnly || FAV.has(a.id)) &&
     (!p.cat || a.cat===p.cat) && (p.sub==null || a.sub===p.sub) &&
-    (!p.reg || p.reg==="all" || a.reg===p.reg) && (!p.cond || p.cond==="all" || a.cond===p.cond) &&
+    (!p.reg || p.reg==="all" || a.reg===p.reg) && (since==null || a.t>=since) && (!p.cond || p.cond==="all" || a.cond===p.cond) &&
     (!p.photo || a.photos>0) && (!p.priv || a.priv) && (!p.deal || isDeal(a)) && (!p.delivery || a.delivery) && (!p.verified || sellerOf(a).verified) &&
-    (min==null || mdl(a) >= min) && (max==null || (mdl(a) <= max && !(a.price===0 && ["serv","job"].includes(a.cat)))) &&
+    (min==null || mdl(a) >= min) && (max==null || (mdl(a) <= max && !(a.price===0 && a.cat!=="free"))) &&
     (!q.length || q.every(w => (a._h ||= norm(a.title+" "+a.desc+" "+Object.values(a.attrs).join(" ")+" "+regName(a.reg,"ru")+" "+regName(a.reg,"ro")+" "+catOf(a.cat).ru+" "+catOf(a.cat).ro)).includes(w))) &&
     Object.entries(p.attrs||{}).every(([key,v]) => {
       if (!hasVal(v)) return true;
@@ -79,10 +89,15 @@ function query(p){
         if (Array.isArray(x)){ const xs = x.map(z=>String(z).toLowerCase()); return key==="opts" ? want.every(w=>xs.includes(w)) : want.some(w=>xs.includes(w)); }
         return want.includes(String(x).toLowerCase());
       }
-      return (v.min==null||v.min===""||+x>=+v.min) && (v.max==null||v.max===""||+x<=+v.max);
+      const isD = y => typeof y==="string" && /^\d{4}-\d\d-\d\d$/.test(y); // даты сравниваются как строки ГГГГ-ММ-ДД
+      const ge = (x,y) => isD(y) ? String(x)>=y : +x>=+y, le = (x,y) => isD(y) ? String(x)<=y : +x<=+y;
+      return (v.min==null||v.min===""||ge(x,v.min)) && (v.max==null||v.max===""||le(x,v.max));
     }));
   const dealScore = a => a.val>0 && a.price>0 ? a.val/a.price : 0;
-  const by = {new:(a,b)=>b.t-a.t, cheap:(a,b)=>mdl(a)-mdl(b), exp:(a,b)=>mdl(b)-mdl(a), pop:(a,b)=>b.views-a.views, deal:(a,b)=>dealScore(b)-dealScore(a)||b.t-a.t, value:(a,b)=>(b.val||0)-(a.val||0)}[p.sort||"new"];
+  const rel = a => { if (!q.length) return 0; const tt = norm(a.title); let sc = 0;
+    q.forEach(w=>{ if (tt.includes(w)) sc += new RegExp("(^|[^a-zа-я0-9])"+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).test(tt) ? 4 : 2; else sc += 1; });
+    return sc + (tt.startsWith(q[0])?2:0) + (a.top?1:0) + (a.photos?0.5:0); };
+  const by = {rel:(a,b)=>rel(b)-rel(a)||b.t-a.t, new:(a,b)=>b.t-a.t, cheap:(a,b)=>mdl(a)-mdl(b), exp:(a,b)=>mdl(b)-mdl(a), pop:(a,b)=>b.views-a.views, deal:(a,b)=>dealScore(b)-dealScore(a)||b.t-a.t, value:(a,b)=>(b.val||0)-(a.val||0)}[p.sort||"new"];
   if (p.ids && (!p.sort || p.sort==="new")) r.sort((a,b)=>p.ids.indexOf(a.id)-p.ids.indexOf(b.id));
   else r.sort((a,b)=> ((p.sort||"new")==="new" ? (b.top-a.top) : 0) || by(a,b));
   return r;
@@ -105,15 +120,25 @@ function renderStatic(){
 const counts = () => { const m={}; ADS.forEach(a=>{ m[a.cat]=(m[a.cat]||0)+1; m[a.cat+":"+a.sub]=(m[a.cat+":"+a.sub]||0)+1; }); return m; };
 function renderCats(){
   const n = counts();
-  $("#cats").innerHTML = CATS.map(c => `<a href="#" class="cat ${S.cat===c.id?"on":""}" data-cat="${c.id}">
-    <span class="ic" style="background:${c.c}18;color:${c.c}"><i data-lucide="${c.ic}"></i></span>${c[S.lang]}<span class="n">${n[c.id]||0}</span></a>`).join("");
   const c = catOf(S.cat);
+  // без выбранной категории — плитки категорий; с категорией — плитки её подразделов
+  $("#cats").classList.toggle("subs", !!c);
+  $("#cats").innerHTML = c
+    ? `<button class="cat back" data-cat-back><span class="ic"><i data-lucide="arrow-left"></i></span>${t("allcats")}</button>
+       <div class="subhead"><span class="ic" style="background:${c.c}18;color:${c.c}"><i data-lucide="${c.ic}"></i></span><div><b>${c[S.lang]}</b><small>${n[c.id]||0} ${t("adsN")}</small></div></div>
+       <button class="cat ${S.sub===null?"on":""}" data-subtile=""><span class="ic" style="background:${c.c}18;color:${c.c}"><i data-lucide="layout-grid"></i></span>${t("allInCat")}<span class="n">${n[c.id]||0}</span></button>` +
+      c.subs.map((sb,i)=>`<button class="cat ${S.sub===i?"on":""}" data-subtile="${i}"><span class="ic" style="background:${c.c}18;color:${c.c}"><i data-lucide="${(SIC[c.id]||[])[i]||c.ic}"></i></span>${subName(c,i)}<span class="n">${n[c.id+":"+i]||0}</span></button>`).join("")
+    : CATS.map(cc => `<a href="#" class="cat" data-cat="${cc.id}">
+    <span class="ic" style="background:${cc.c}18;color:${cc.c}"><i data-lucide="${cc.ic}"></i></span>${cc[S.lang]}<span class="n">${n[cc.id]||0}</span></a>`).join("");
   $("#subbar").innerHTML = c ? `<button class="chip ${S.sub===null?"on":""}" data-sub="">${t("allIn")}<small>${n[c.id]||0}</small></button>` +
     c.subs.map((s,i)=>`<button class="chip ${S.sub===i?"on":""}" data-sub="${i}">${subName(c,i)}<small>${n[c.id+":"+i]||0}</small></button>`).join("") : "";
   renderAdv();
 }
 const uniqFields = (c, sub) => { const seen = new Set(); return fieldsFor(c, sub).filter(f => !seen.has(f.k) && seen.add(f.k)); };
 function childKeys(fs, k){ const out=[]; let cur=[k]; while (cur.length){ const nx = fs.filter(f=>cur.includes(f.dep)).map(f=>f.k); out.push(...nx); cur = nx; } return out; }
+const MFIND = {};
+function applyMfind(){ $$("[data-mfind]").forEach(inp=>{ const q=norm(inp.value).trim(); MFIND[inp.dataset.mfind]=inp.value;
+  $$(`[data-mlist="${inp.dataset.mfind}"] .chip`).forEach(c=>c.hidden = !!q && !c.dataset.tx.includes(q) && !c.classList.contains("on")); }); }
 function renderAdv(){
   const c = catOf(S.cat);
   let h = `<div class="hd"><i data-lucide="sliders-horizontal"></i>${t("adv")}</div>`;
@@ -125,12 +150,12 @@ function renderAdv(){
   for (const g of Object.keys(GROUPS)){
     const list = groups[g]; if (!list) continue;
     const act = list.filter(f=>hasVal(S.attrs[f.k])).length;
-    h += `<details class="fg" ${g==="main"||g==="tech"||act?"open":""}><summary>${GROUPS[g][L1]}${act?`<b>${act}</b>`:""}</summary>`;
+    h += `<details class="fg" ${g==="main"||g==="tech"||g==="specs"||act?"open":""}><summary>${GROUPS[g][L1]}${act?`<b>${act}</b>`:""}</summary>`;
     for (const f of list) h += advField(f, fs);
     h += `</details>`;
   }
   if (S.sub===null && c.fields.some(f=>f.only)) h += `<div class="hint">${t("advHint2")}</div>`;
-  $("#adv").innerHTML = h;
+  $("#adv").innerHTML = h; applyMfind();
 }
 function advField(f, fs){
   const v = S.attrs[f.k], lab = f[S.lang] + (f.u ? `, ${f.u}` : "");
@@ -139,6 +164,10 @@ function advField(f, fs){
   const base = query({...S, attrs:at});
   const cnt = {}; base.forEach(a=>{ const x=a.attrs[f.k]; if (x==null) return; (Array.isArray(x)?x:[x]).forEach(y=>cnt[y]=(cnt[y]||0)+1); });
   if (f.t==="bool") return `<label class="chk fb"><input type="checkbox" data-ab="${f.k}" ${v===true?"checked":""}><span>${esc(f[S.lang])}</span><small>${base.filter(a=>a.attrs[f.k]===true).length}</small></label>`;
+  if (f.t==="date"){
+    const ds = base.map(a=>a.attrs[f.k]).filter(Boolean).sort();
+    return `<label class="f">${esc(lab)}</label><div class="row2"><input class="fld" type="date" data-ad="${f.k}" data-e="min" title="${t("from")}" min="${ds[0]||""}" value="${v?.min??""}"><input class="fld" type="date" data-ad="${f.k}" data-e="max" title="${t("to")}" max="${ds[ds.length-1]||""}" value="${v?.max??""}"></div>`;
+  }
   if (f.t==="rng"){
     const nums = base.map(a=>+a.attrs[f.k]).filter(n=>!isNaN(n)), mn = nums.length?Math.min(...nums):"", mx = nums.length?Math.max(...nums):"";
     const fmt = n => n==="" ? "" : f.step ? (+n).toFixed(1) : ["year","floor","floors","shoe"].includes(f.k) ? String(n) : fmtN(n).replace(/\s/g," ");
@@ -147,15 +176,18 @@ function advField(f, fs){
   const opts = fieldOpts(f, S.attrs);
   if (f.t==="sel"){
     if (f.dep && !hasVal(S.attrs[f.dep])){ const pf = fs.find(x=>x.k===f.dep); return `<label class="f">${esc(lab)}</label><select class="fld" disabled><option>${t("pickFirst")} ${esc((pf?.[S.lang]||"").toLowerCase())}</option></select>`; }
+    if (!opts.length) return `<label class="f">${esc(lab)}</label><select class="fld" disabled><option>—</option></select>`;
     return `<label class="f">${esc(lab)}</label><select class="fld" data-af="${f.k}"><option value="">${t("any")}</option>${opts.map(o=>{ const ov=optV(o), n=cnt[ov]||0;
       return `<option value="${esc(ov)}" ${v==ov?"selected":""} ${!n&&v!=ov?"disabled":""}>${esc(Array.isArray(o)?o[L()]:o)}${n?` (${n})`:""}</option>`; }).join("")}</select>`;
   }
   const sel = Array.isArray(v) ? v.map(String) : hasVal(v) ? [String(v)] : [];
   if (f.t==="color") return `<label class="f">${esc(lab)}</label><div class="sw-row">${opts.map(o=>{ const n=cnt[o[0]]||0;
     return `<button type="button" class="swc ${sel.includes(o[0])?"on":""} ${!n&&!sel.includes(o[0])?"off":""}" data-am="${f.k}" data-v="${o[0]}" title="${esc(o[L()])} (${n})" style="--c:${o[3]}"></button>`; }).join("")}</div>`;
-  const many = opts.length > 8;
-  return `<label class="f">${esc(lab)}</label><div class="chips mchips ${many?"many":""}">${opts.map(o=>{ const ov=String(optV(o)), n=cnt[ov]||0;
-    return `<button type="button" class="chip ${sel.includes(ov)?"on":""} ${!n&&!sel.includes(ov)?"off":""}" data-am="${f.k}" data-v="${esc(ov)}">${esc(Array.isArray(o)?o[L()]:o)}<small>${n}</small></button>`; }).join("")}</div>`;
+  const many = opts.length > 10;
+  // длинные списки: сначала выбранные, затем с объявлениями, затем остальные; есть строка поиска
+  const ordered = many ? [...opts].sort((x,y)=>{ const a=String(optV(x)), b=String(optV(y)); return (sel.includes(b)-sel.includes(a)) || ((cnt[b]||0)>0) - ((cnt[a]||0)>0); }) : opts;
+  return `<label class="f">${esc(lab)}${sel.length?` <b class="nsel">${sel.length}</b>`:""}</label>${many?`<input class="fld mfind" data-mfind="${f.k}" placeholder="${t("findIn")} (${opts.length})" value="${esc(MFIND[f.k]||"")}">`:""}<div class="chips mchips ${many?"many":""}" data-mlist="${f.k}">${ordered.map(o=>{ const ov=String(optV(o)), n=cnt[ov]||0, tx=Array.isArray(o)?o[L()]:o;
+    return `<button type="button" class="chip ${sel.includes(ov)?"on":""} ${!n&&!sel.includes(ov)?"off":""}" data-am="${f.k}" data-v="${esc(ov)}" data-tx="${esc(norm(tx))}">${esc(tx)}<small>${n}</small></button>`; }).join("")}</div>`;
 }
 function cardHTML(a){
   const c = catOf(a.cat), sp = specLine(a);
@@ -189,12 +221,13 @@ function render(){
   if (c && S.sub!==null) cr.push(["sub",subName(c,S.sub)]);
   if (S.q) cr.push(["q",`«${S.q}»`]);
   if (S.reg!=="all") cr.push(["reg",regName(S.reg)]);
+  if (S.age && S.age!=="all") cr.push(["age",t("age_"+S.age)]);
   if (S.delivery) cr.push(["delivery",t("withDelivery")]);
   if (S.verified) cr.push(["verified",t("verifiedOnly")]);
   if (S.min!==""||S.max!=="") cr.push(["price",`${S.min||0} – ${S.max||"∞"} ${curS(S.cur)}`]);
   const ufs = c ? uniqFields(c, S.sub) : [];
   for (const [k,v] of Object.entries(S.attrs)){ const f=ufs.find(f=>f.k===k); if(!f || !hasVal(v)) continue;
-    cr.push(["a:"+k, f.t==="bool" ? f[S.lang] : f[S.lang]+": "+(typeof v==="object" && !Array.isArray(v) ? `${v.min??""}–${v.max??""}` : fmtAttr(f,v))]); }
+    cr.push(["a:"+k, f.t==="bool" ? f[S.lang] : f[S.lang]+": "+(typeof v==="object" && !Array.isArray(v) ? (f.t==="date" ? `${v.min?fmtAttr(f,v.min):"…"} – ${v.max?fmtAttr(f,v.max):"…"}` : `${v.min??""}–${v.max??""}`) : fmtAttr(f,v))]); }
   $("#crumbs").innerHTML = cr.map(([k,v])=>`<button class="chip on" data-x="${k}">${esc(v)} <i data-lucide="x"></i></button>`).join("");
   const n = FAV.size; ["#favN","#favN2"].forEach(x=>{$(x).hidden=!n;$(x).textContent=n;});
   $("#asideApply").textContent = t("showN")+" ("+r.length+")";
@@ -236,7 +269,7 @@ function openPost(){
     <div class="thumbs" id="thumbs"></div>
     <label>${t("pDesc")}<textarea name="desc" maxlength="2000"></textarea></label>
     <div class="g2"><label>${t("pPrice")}<input class="fld" name="price" type="number" min="0" placeholder="0"></label>
-      <label>${t("pCur")}<select class="fld" name="cur"><option value="MDL">${curS("MDL")} (MDL)</option><option value="EUR">€ (EUR)</option></select></label></div>
+      <label>${t("pCur")}<select class="fld" name="cur">${Object.keys(CURRENCIES).map(c=>`<option value="${c}">${curS(c)} (${c})</option>`).join("")}</select></label></div>
     <div class="g2"><label>${t("pReg")}<select class="fld" name="reg">${REG.slice(1).map(r=>`<option value="${r[0]}">${r[L()]}</option>`).join("")}</select></label>
       <label>${t("pPhone")}<input class="fld" name="phone" value="+373 " inputmode="tel"></label></div>
     <label class="chk" style="display:flex;font-weight:600"><input type="checkbox" name="isnew"> ${t("new")}</label>
@@ -249,6 +282,9 @@ function openPost(){
   const fillAttrs = () => { const c = catOf(f.cat.value), keep = curP(), fs = uniqFields(c,+f.sub.value);
     $("#pattrs").innerHTML = fs.map(x=>{ const lab = `${x[S.lang]}${x.u?", "+x.u:""}`;
       if (x.t==="bool") return `<label class="chk" style="display:flex"><input type="checkbox" data-pab="${x.k}"> ${esc(x[S.lang])}</label>`;
+      if (x.t==="date") return `<label>${esc(lab)}<input class="fld" type="date" data-pa="${x.k}" value="${esc(keep[x.k]||"")}"></label>`;
+      if (x.t==="color") return `<label>${esc(lab)}<select class="fld" data-pa="${x.k}"><option value="">—</option>${x.opts.map(o=>`<option value="${o[0]}" ${keep[x.k]==o[0]?"selected":""}>${esc(o[L()])}</option>`).join("")}</select></label>`;
+      if (x.t==="multi" && x.k!=="opts" && !x.dep) return `<label>${esc(lab)}<select class="fld" data-pa="${x.k}"><option value="">—</option>${fieldOpts(x,keep).map(o=>`<option value="${esc(optV(o))}" ${keep[x.k]==optV(o)?"selected":""}>${esc(Array.isArray(o)?o[L()]:o)}</option>`).join("")}</select></label>`;
       if (x.t==="rng") return `<label>${esc(lab)}<input class="fld" type="number" ${x.step?`step="${x.step}"`:""} data-pa="${x.k}" data-num value="${esc(keep[x.k]||"")}"></label>`;
       if (x.k==="opts") return `<div style="grid-column:1/-1"><div class="lbl">${esc(lab)}</div><div class="chips">${x.opts.map(o=>`<label class="chip ochk"><input type="checkbox" data-pao="${x.k}" value="${esc(optV(o))}"> ${esc(o[L()])}</label>`).join("")}</div></div>`;
       const opts = fieldOpts(x, keep), dis = x.dep && !keep[x.dep];

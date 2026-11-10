@@ -1,10 +1,11 @@
 /* Project — обработчики событий */
 function resetState(){
-  Object.assign(S,{cat:null,sub:null,q:"",reg:"all",min:"",max:"",cond:"all",photo:false,priv:false,deal:false,delivery:false,verified:false,attrs:{},ids:null,favOnly:false,sort:"new",shown:24});
+  Object.assign(S,{cat:null,sub:null,q:"",reg:"all",age:"all",min:"",max:"",cond:"all",photo:false,priv:false,deal:false,delivery:false,verified:false,attrs:{},ids:null,favOnly:false,sort:"new",shown:24});
   $("#q").value=""; $("#pmin").value=$("#pmax").value=""; $("#fPhoto").checked=$("#fPrivate").checked=$("#fDeal").checked=$("#fDel").checked=$("#fVer").checked=false;
-  $$("#cond .chip").forEach(x=>x.classList.toggle("on", x.dataset.v==="all")); $("#sort").value="new";
+  $$("#cond .chip").forEach(x=>x.classList.toggle("on", x.dataset.v==="all")); $("#sort").value="new"; $("#age").value="all"; $$("#cur .chip").forEach(x=>x.classList.toggle("on", x.dataset.c==="MDL")); S.cur="MDL";
 }
 const go = (patch) => { Object.assign(S, {shown:24}, patch); renderCats(); render(); };
+const toCats = () => { const h = document.querySelector("header").offsetHeight, y = $(".hero").getBoundingClientRect().top + window.scrollY - h; if (window.scrollY > y+40) window.scrollTo({top:Math.max(0,y), behavior:"smooth"}); };
 const toMain = () => { const h = document.querySelector("header").offsetHeight;
   const y = document.querySelector(".main").getBoundingClientRect().top + window.scrollY - h - 8;
   if (Math.abs(window.scrollY - y) > 4) window.scrollTo({top:Math.max(0,y), behavior:"smooth"}); };
@@ -18,7 +19,10 @@ document.addEventListener("click", e => {
   const mc = e.target.closest("[data-mc]");
   if (mc){ closeModal(); go({cat:mc.dataset.mc, sub: mc.dataset.ms!=null? +mc.dataset.ms : null, attrs:{}, ids:null, favOnly:false}); toMain(); return; }
   const cat = e.target.closest("[data-cat]");
-  if (cat){ e.preventDefault(); const same=S.cat===cat.dataset.cat; go({cat: same?null:cat.dataset.cat, sub:null, attrs:{}, ids:null, favOnly:false}); toMain(); return; }
+  if (cat){ e.preventDefault(); go({cat:cat.dataset.cat, sub:null, attrs:{}, ids:null, favOnly:false}); toCats(); return; }
+  if (e.target.closest("[data-cat-back]")){ go({cat:null, sub:null, attrs:{}}); toCats(); return; }
+  const st = e.target.closest("[data-subtile]");
+  if (st){ const v = st.dataset.subtile===""?null:+st.dataset.subtile; go({sub:v, attrs:{}}); toMain(); return; }
   const sub = e.target.closest("[data-sub]");
   if (sub){ const v = sub.dataset.sub===""?null:+sub.dataset.sub; const keep={}; const c=catOf(S.cat);
     for (const k in S.attrs) if (fieldsFor(c,v).some(f=>f.k===k)) keep[k]=S.attrs[k];
@@ -33,9 +37,9 @@ document.addEventListener("click", e => {
   const x = e.target.closest("[data-x]");
   if (x){ const k=x.dataset.x;
     if (k.startsWith("a:")){ const a={...S.attrs}; delete a[k.slice(2)]; go({attrs:a}); return; }
-    const p = {ids:{ids:null},fav:{favOnly:false},cat:{cat:null,sub:null,attrs:{}},sub:{sub:null},q:{q:""},reg:{reg:"all"},price:{min:"",max:""},delivery:{delivery:false},verified:{verified:false}}[k];
+    const p = {ids:{ids:null},fav:{favOnly:false},cat:{cat:null,sub:null,attrs:{}},sub:{sub:null},q:{q:""},reg:{reg:"all"},age:{age:"all"},price:{min:"",max:""},delivery:{delivery:false},verified:{verified:false}}[k];
     if (k==="delivery") $("#fDel").checked=false; if (k==="verified") $("#fVer").checked=false;
-    if (k==="q") $("#q").value=""; if (k==="price") $("#pmin").value=$("#pmax").value="";
+    if (k==="q") $("#q").value=""; if (k==="age") $("#age").value="all"; if (k==="price") $("#pmin").value=$("#pmax").value="";
     go(p); renderStatic(); return; }
   if (e.target.closest("#mx") || e.target===$("#ov")) closeModal();
   if (e.target.closest('a[href="#"]')) e.preventDefault();
@@ -50,7 +54,10 @@ $("#adv").addEventListener("change", e => {
 $("#adv").addEventListener("click", e => { const b = e.target.closest("[data-am]"); if (!b) return;
   const k = b.dataset.am, v = b.dataset.v, a = {...S.attrs}, cur = Array.isArray(a[k]) ? a[k].slice() : hasVal(a[k]) ? [String(a[k])] : [];
   const i = cur.indexOf(v); i>=0 ? cur.splice(i,1) : cur.push(v); if (cur.length) a[k]=cur; else delete a[k]; go({attrs:a}); });
-let at; $("#adv").addEventListener("input", e => { const el=e.target; if(!el.dataset.ar) return; clearTimeout(at); at=setTimeout(()=>{
+$("#adv").addEventListener("change", e => { const el=e.target; if(!el.dataset.ad) return;
+  const a={...S.attrs}, cur={...(a[el.dataset.ad]||{})}; cur[el.dataset.e]= el.value||undefined;
+  if (!cur.min && !cur.max) delete a[el.dataset.ad]; else a[el.dataset.ad]=cur; go({attrs:a}); });
+let at; $("#adv").addEventListener("input", e => { const el=e.target; if (el.dataset.mfind){ applyMfind(); return; } if(!el.dataset.ar) return; clearTimeout(at); at=setTimeout(()=>{
   const a={...S.attrs}, cur={...(a[el.dataset.ar]||{})}; cur[el.dataset.e]= el.value===""?undefined:+el.value;
   if (cur.min==null && cur.max==null) delete a[el.dataset.ar]; else a[el.dataset.ar]=cur;
   Object.assign(S,{attrs:a,shown:24}); render(); }, 300); });
@@ -69,6 +76,7 @@ $("#aiIn").onkeydown = e => { if (e.key==="Enter" && !e.shiftKey){ e.preventDefa
 $("#loginLink").onclick = e => { e.preventDefault(); openLogin(); };
 $("#regionTop").onchange = e => { go({reg:e.target.value}); $("#region").value=S.reg; };
 $("#region").onchange = e => { go({reg:e.target.value}); $("#regionTop").value=S.reg; };
+$("#age").onchange = e => go({age:e.target.value});
 let pt; ["#pmin","#pmax"].forEach(s => $(s).oninput = () => { clearTimeout(pt); pt=setTimeout(()=>go({min:$("#pmin").value,max:$("#pmax").value}),250); });
 $("#cur").onclick = e => { const b=e.target.closest("[data-c]"); if(!b)return; $$("#cur .chip").forEach(x=>x.classList.toggle("on",x===b)); go({cur:b.dataset.c}); };
 $("#cond").onclick = e => { const b=e.target.closest("[data-v]"); if(!b)return; $$("#cond .chip").forEach(x=>x.classList.toggle("on",x===b)); go({cond:b.dataset.v}); };

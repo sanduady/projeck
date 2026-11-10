@@ -13,21 +13,21 @@ const NAMES = ["Андрей","Мария","Ion","Елена","Victor","Ната
 let ADS = [], uid = 1;
 function add(o){
   const cond = o.cond || (R()<.3?"new":"used");
-  ADS.push(Object.assign({id:uid++, cur:"MDL", val:0, reg: R()<.55?"chi":REG[2+Math.floor(R()*(REG.length-2))][0],
+  ADS.push(Object.assign({id:uid++, cur:"MDL", val:0, reg: R()<.5?"chi": R()<.6 ? REG[2+Math.floor(R()*9)][0] : REG[2+Math.floor(R()*(REG.length-2))][0],
     cond, priv:R()<.72, photos: R()<.9?ri(1,14):0, t: NOW - Math.floor(R()*14*864e5), views:ri(5,3200), top:R()<.06,
     desc:pick(DESCS[cond]), name:pick(NAMES), phone:"+373 6"+ri(0,9)+" "+ri(100,999)+" "+ri(100,999), imgs:[], attrs:{}}, o, {cond}));
 }
 // --- Transport
 (function(){
-  const PREM=["Audi","BMW","Mercedes-Benz","Lexus","Tesla"], BUDGET=["Dacia","Renault","Opel"];
-  const SUVS=/^(X3|X5|Q5|Q7|RAV4|Tiguan|Kodiaq|Duster|Tucson|Santa Fe|Sportage|Sorento|Kuga|RX|NX|Model Y|GLC)$/, HATCH=/^(Golf|Fabia|Clio|Megane|Ceed|Focus|Astra|1 Series|A-Class|Sandero|Prius)$/, VANS=/^(Touran|Zafira|Kangoo)$/, WAG=/^(Passat|Octavia|Superb|A4|A6|Insignia|Mondeo)$/;
-  const BW = ["Toyota","Toyota","Volkswagen","Volkswagen","BMW","BMW","Mercedes-Benz","Skoda","Skoda","Dacia","Dacia","Renault","Hyundai","Kia","Ford","Opel","Audi","Lexus","Tesla"];
-  for(let i=0;i<120;i++){
-    const b = pick(BW), m = pick(CAR_MODELS[b]), gens = CAR_DB[b][m], gi = Math.floor(R()*gens.length), [g, yrs] = gens[gi];
-    const y0 = Math.max(2005, +yrs.slice(0,4)), y1 = Math.min(2024, yrs.endsWith("–") ? 2024 : +yrs.slice(-4)), year = ri(y0, Math.max(y0,y1));
-    const cls = PREM.includes(b) ? "prem" : BUDGET.includes(b) ? "bud" : "mid";
-    const body = SUVS.test(m) ? "suv" : VANS.test(m) ? "van" : HATCH.test(m) ? (R()<.2?"wagon":"hatch") : WAG.test(m) ? (R()<.5?"wagon":"sedan") : "sedan";
-    const fuel = b==="Tesla" ? "electric" : (b==="Toyota"||b==="Lexus") && R()<.55 ? "hybrid" : cls==="bud" && R()<.35 ? "gas" : R()<.5 ? "diesel" : "petrol";
+  const POPULAR=["Toyota","Volkswagen","BMW","Mercedes-Benz","Skoda","Dacia","Renault","Hyundai","Kia","Ford","Opel","Audi","Lexus","Mazda","Honda","Nissan","Peugeot","Mitsubishi","Volvo","Lada (ВАЗ)"];
+  const BW = [...CAR_BRANDS, ...POPULAR, ...POPULAR, ...POPULAR];
+  for(let i=0;i<260;i++){
+    const b = pick(BW), m = pick(CAR_MODELS[b]), gens = CAR_DB[b][m], gi = Math.floor(R()*gens.length), [g, yrs] = gens.length ? gens[gi] : [null, "2005–2024"];
+    const old = /ГАЗ|УАЗ|ЗАЗ|Москвич|Daewoo|Rover|Saab/.test(b) || /^(2101|2104|2105|2106|2107|2109|21099|2110|2112|2114|2115|24 Волга|3110|31105|412|2140|2141|469)$/.test(m);
+    const y0 = Math.max(old?1985:2005, +yrs.slice(0,4)), y1 = Math.min(2024, yrs.endsWith("–") ? 2024 : +yrs.slice(-4)), year = ri(y0, Math.max(y0,y1));
+    const cls = CAR_CLASS(b);
+    const body = SUV_RE.test(m) ? "suv" : VAN_RE.test(m) ? "van" : HATCH_RE.test(m) ? (R()<.15?"wagon":"hatch") : /Passat|Octavia|Superb|A4|A6|Insignia|Mondeo|V\d0|Avensis|Laguna|508|Outback|Legacy|Largus/.test(m) ? (R()<.5?"wagon":"sedan") : /Mustang|Camaro|Challenger|911|4 Series|TT|MX-5/.test(m) ? "coupe" : /Hilux|L200|Navara|Ranger|RAM|Wingle|Poer/.test(m) ? "pickup" : "sedan";
+    const fuel = (b==="Tesla"||/^(Leaf|i3|iX|e-tron|Zoe|Spring|ID\.3|ID\.4|Enyaq|Born|EV6|Taycan|Atto 3|Dolphin|Han|Seal|MG4|Bolt)$/.test(m)) ? "electric" : (b==="Toyota"||b==="Lexus") && R()<.55 ? "hybrid" : cls==="bud" && R()<.35 ? "gas" : R()<.5 ? "diesel" : "petrol";
     const engine = fuel==="electric" ? null : pick(cls==="prem" ? [2.0,2.0,2.5,3.0] : cls==="bud" ? [0.9,1.2,1.4,1.5,1.6] : [1.4,1.5,1.6,2.0,2.0,2.5]);
     const power = fuel==="electric" ? pick([283,351,460]) : Math.round(engine*(fuel==="diesel"?68:76)*(.85+R()*.3)*(cls==="prem"?1.35:1));
     const gearbox = fuel==="electric" ? "auto" : fuel==="hybrid" ? "cvt" : cls==="prem" ? (R()<.92?"auto":"manual") : pick(["manual","manual","auto","robot","cvt"]);
@@ -40,8 +40,8 @@ function add(o){
     const nOpts = Math.min(CAR_OPTS.length, 2 + Math.floor((year-2004)/3) + (cls==="prem"?3:0));
     const opts = take(CAR_OPTS.map(o=>o[0]), nOpts);
     const fuelL = lbl(FUEL,fuel).toLowerCase(), gearL = lbl(GEAR,gearbox).toLowerCase();
-    add({cat:"auto",sub:0,title:`${b} ${m} ${g}, ${year}, ${engine?engine.toFixed(1)+" ":""}${fuelL}, ${gearL}${damage!=="ok"?(damage==="dmg"?", после ДТП":", на запчасти"):""}`,cur:"EUR",price,val,cond:"used",
-      attrs:{brand:b,model:m,gen:g,year,mileage,fuel,...(engine?{engine}:{}),power,gearbox,drive,body,color:pick(COLORS)[0],wheel:R()<.97?"left":"right",damage,
+    add({cat:"auto",sub:0,title:`${b} ${m}${g?" "+g:""}, ${year}, ${engine?engine.toFixed(1)+" ":""}${fuelL}, ${gearL}${damage!=="ok"?(damage==="dmg"?", после ДТП":", на запчасти"):""}`,cur:"EUR",price,val,cond:"used",
+      attrs:{brand:b,model:m,...(g?{gen:g}:{}),year,mileage,fuel,...(engine?{engine}:{}),power,gearbox,drive,body,color:pick(COLORS)[0],wheel:R()<.97?"left":"right",damage,
         owners:pick(["1","2","2","3"]),reg:R()<.8?"md":R()<.6?"foreign":R()<.6?"tr":"none",trade:R()<.25,credit:cls!=="bud"&&R()<.15,opts}});
   }
   const trucks=[["Mercedes-Benz","Sprinter",14000],["MAN","TGX 18.440",32000],["DAF","XF 480",35000],["Iveco","Daily",12000],["Volkswagen","Crafter",15000],["Ford","Transit",11000]];
@@ -52,7 +52,7 @@ function add(o){
     add({cat:"auto",sub:2,title:`${b} ${m}, ${year}`,cur:"EUR",price:r100(val*(.85+R()*.3)),val,cond:"used",attrs:{brand:b,year,mileage:(2025-year)*ri(2,6)*1000}});}
   [["Микроавтобус Mercedes Sprinter 516, 20 мест",3,"EUR",21500],["Volkswagen Crafter пассажирский 2017",3,"EUR",18900],["Автобус Iveco Daily 50C, 2015",3,"EUR",16500],["Экскаватор-погрузчик JCB 3CX 2012",4,"EUR",38000],["Мини-погрузчик Bobcat S175",4,"EUR",17500],["Прицеп легковой 2×1.3 м, документы",5,"MDL",14000],["Прицеп для лодки, усиленный",5,"MDL",19000],
    ["Фара левая Skoda Octavia A7, оригинал",6,"MDL",2300],["Двигатель 1.9 TDI в сборе, VW",6,"MDL",18000],["Тормозные колодки Bosch, Passat B8",6,"MDL",650],["Аккумулятор Varta 74Ah, новый",6,"MDL",1900],["Коробка передач DSG7, Golf 7",6,"MDL",12500],
-   ["Зимние шины Michelin 205/55 R16, 4 шт",7,"MDL",5200],["Литые диски R17 5×112, оригинал Audi",7,"MDL",8900],["Летние шины Continental 225/45 R17",7,"MDL",6800],["Моторная лодка Казанка + мотор Yamaha 30",8,"EUR",4200],["Гидроцикл Sea-Doo Spark 2019",8,"EUR",6900]]
+   ["Зимние шины Michelin 205/55 R16, 4 шт",7,"MDL",5200],["Литые диски R17 5×112, оригинал Audi",7,"MDL",8900],["Летние шины Continental 225/45 R17",7,"MDL",6800],["Моторная лодка Казанка + мотор Yamaha 30",8,"EUR",4200],["Автодом Fiat Ducato, 6 спальных мест, 2016",9,"EUR",38500],["Кемпер Volkswagen California, 2014",9,"EUR",29900],["Прицеп-дача, 4 места, с кухней",9,"EUR",7900],["Гидроцикл Sea-Doo Spark 2019",8,"EUR",6900]]
    .forEach(([t,sub,cur,price])=>add({cat:"auto",sub,title:t,cur,price,cond:/новый|оригинал/.test(t)&&R()<.5?"new":"used"}));
 })();
 // --- Real estate
@@ -78,13 +78,16 @@ function add(o){
 })();
 // --- Electronics
 (function(){
-  const PH_BASE={"iPhone 12":6000,"iPhone 13":8200,"iPhone 14":10500,"iPhone 15":13500,"iPhone 15 Pro":17500,"iPhone 16 Pro":23000,"Galaxy A35":4600,"Galaxy A55":6200,"Galaxy S23":9200,"Galaxy S24":12500,"Galaxy S24 Ultra":19000,
-    "Redmi Note 13":3500,"Redmi Note 13 Pro":5200,"Xiaomi 14T":9800,"Pixel 8":9000,"Pixel 8 Pro":12500};
-  const PH_RAM={"iPhone 12":4,"iPhone 13":4,"iPhone 14":6,"iPhone 15":6,"iPhone 15 Pro":8,"iPhone 16 Pro":8,"Galaxy S24 Ultra":12,"Xiaomi 14T":12,"Pixel 8 Pro":12,"Redmi Note 13":6};
-  for(let i=0;i<40;i++){ const b=pick(Object.keys(PHONE_DB)), m=pick(PHONE_DB[b]), st=pick([128,128,256,256,512]), cond=R()<.3?"new":"used";
-    const val=r100(PH_BASE[m]*(st===256?1.12:st===512?1.3:1)*(cond==="new"?1.08:.78));
-    add({cat:"elec",sub:0,title:`${b==="Apple"||b==="Xiaomi"&&m.startsWith("Xiaomi")?"":b+" "}${m} ${st}GB${cond==="new"?", новый":""}`,price:r100(val*(.86+R()*.3)),val,cond,
-      attrs:{brand:b,model:m,ram:PH_RAM[m]||8,storage:String(st)}});}
+  const TIER={"Apple":17000,"Samsung":12000,"Google":10000,"Xiaomi":7000,"OnePlus":9000,"Huawei":8000,"Honor":7000,"Motorola":5500,"Nothing":7000,"Oppo":6000,"Realme":5000,"Vivo":5500,"Sony":9000,"Nokia":3000};
+  const phonePrice = (b,m) => { const list=PHONE_DB[b], i=list.indexOf(m), age=.45+1.0*i/Math.max(1,list.length-1);
+    const k = /Ultra|Pro Max|Fold/.test(m)?1.6 : /Pro|Plus|Flip|Air/.test(m)?1.3 : /mini|SE|16e|FE|Lite|\ba\b|\d+a$|Redmi \d|C\d|A1|A2|A3|G\d/.test(m)?.7 : 1;
+    return Math.round(TIER[b]*age*k/100)*100; };
+  const PH_RAM = m => /Ultra|Pro Max|Fold|Pro/.test(m) ? pick([8,12]) : pick([4,6,8]);
+  const PHW = [...Object.keys(PHONE_DB), "Apple","Apple","Apple","Samsung","Samsung","Xiaomi","Xiaomi"];
+  for(let i=0;i<90;i++){ const b=pick(PHW), m=pick(PHONE_DB[b]), st=pick([64,128,128,256,256,512]), cond=R()<.25?"new":"used";
+    const val=r100(phonePrice(b,m)*(st===256?1.12:st===512?1.3:st===64?.85:1)*(cond==="new"?1.08:.78));
+    add({cat:"elec",sub:0,title:`${b==="Apple"||m.startsWith(b)||/^(Redmi|POCO|Galaxy|Pixel|Xperia|Moto|Nord)/.test(m)?"":b+" "}${/^Galaxy|^Pixel/.test(m)?b+" ":""}${m} ${st}GB${cond==="new"?", новый":""}`,price:r100(val*(.86+R()*.3)),val,cond,
+      attrs:{brand:b,model:m,ram:PH_RAM(m),storage:String(st)}});}
   const laps=[["Apple","MacBook Air 13 M2",16500,8,256,"Apple M2"],["Apple","MacBook Air 15 M3",22500,8,512,"Apple M3"],["Apple","MacBook Pro 14 M3 Pro",34000,18,512,"Apple M3 Pro"],
    ["Lenovo","ThinkPad T14 Gen 3",11500,16,512,"Intel Core i5-1245U"],["Lenovo","Legion 5 RTX 4060",21000,16,1000,"AMD Ryzen 7 7840HS"],["Lenovo","IdeaPad 5",9500,16,512,"AMD Ryzen 5 7530U"],
    ["ASUS","ROG Strix G16 RTX 4070",28000,16,1000,"Intel Core i7-13650HX"],["ASUS","TUF Gaming F15 RTX 3050",13000,16,512,"Intel Core i5-11400H"],["ASUS","Zenbook 14 OLED",15500,16,512,"Intel Core Ultra 5"],
@@ -94,9 +97,11 @@ function add(o){
   // PCs — главный полигон для ИИ
   const cpuV={"Intel Core i3-12100F":1500,"AMD Ryzen 5 5600":2000,"Intel Core i5-12400F":2300,"AMD Ryzen 5 7600":3600,"Intel Core i5-13600K":5000,"AMD Ryzen 7 5800X3D":5600,"Intel Core i7-13700K":7000,"AMD Ryzen 7 7800X3D":7600,"Intel Core i9-13900K":9800};
   const gpuV={"GTX 1660 Super":2600,"RX 6600":3500,"RTX 3060":4500,"RX 7600":4800,"RTX 4060":5800,"RTX 3070":6400,"RTX 4060 Ti":7600,"RX 7800 XT":9600,"RTX 4070":10800,"RTX 4070 Super":12400,"RTX 4080 Super":19500};
+  const PC_CPU=["Intel Core i3-12100F","AMD Ryzen 5 5600","Intel Core i5-12400F","AMD Ryzen 5 7600","Intel Core i5-13600K","AMD Ryzen 7 5800X3D","Intel Core i7-13700K","AMD Ryzen 7 7800X3D","Intel Core i9-13900K"];
+  const PC_GPU=["GTX 1660 Super","RX 6600","RTX 3060","RX 7600","RTX 4060","RTX 3070","RTX 4060 Ti","RX 7800 XT","RTX 4070","RTX 4070 Super","RTX 4080 Super"];
   const tiers=[[0,3,0,3],[1,5,1,5],[2,6,3,7],[3,7,4,9],[4,8,6,10]];
   for(let i=0;i<46;i++){
-    const tr=pick(tiers), cpu=CPU[ri(tr[0],tr[1])], gpu=GPU[ri(tr[2],tr[3])];
+    const tr=pick(tiers), cpu=PC_CPU[ri(tr[0],tr[1])], gpu=PC_GPU[ri(tr[2],tr[3])];
     const ram=pick([16,16,32,32,64]), storage=pick([512,1000,1000,2000]), cond=R()<.25?"new":"used";
     const val=r100((cpuV[cpu]+gpuV[gpu]+ram*55+storage*1.1+3200)*(cond==="new"?1.08:.8));
     const price=r100(val*(.78+R()*.42));
@@ -209,8 +214,169 @@ const RICH_ILL = [["car","#2f6fd6","hatch"],["car","#b8bec4","suv"],["car","#f1f
  ["phone","#5b4a7a"],["phone","#1f2a4a"],["pc"],["laptop","#2b2b2b"],["tv"],["washer"],["ac"],["sofa","#7c9a86"],["stroller","#3c4a5c"],["bike","#e0572a"],["guitar"],["tools"],["lesson"],["register"],["cat"],["honey"]];
 RICH.forEach((o,i)=> add(Object.assign({t: NOW - (i*37+5)*60e3, views: ri(20,900), priv: o.cat!=="appl"||o.sub!==3, rich:true, ill: RICH_ILL[i]}, o)));
 
+/* ---- Перенос в структуру из 23 разделов (как на крупных досках Молдовы).
+   a.oc / a.os — исходный раздел генератора, по нему подбираются рисунок и тексты описания. ---- */
+(function(){
+  const T = a => a.title.toLowerCase();
+  const MAP = {
+    elec:{0:["phones",0],3:["phones",1],1:["comp",0],2:["comp",1],7:["comp",14],4:["av",0],
+      5:a=>/наушник|airpods/.test(T(a))?["av",2]:["av",1], 6:a=>/дрон/.test(T(a))?["av",5]:/экшн|gopro/.test(T(a))?["av",4]:["av",3],
+      8:a=>/видеокарт/.test(T(a))?["comp",3]:/монитор/.test(T(a))?["comp",10]:/ssd/.test(T(a))?["comp",7]:/памят/.test(T(a))?["comp",6]:["comp",8]},
+    home:{0:["furn",0],1:["furn",1],2:["furn",2],3:["furn",3],4:["agro",5],5:["furn",4]},
+    sport:{0:["sport",0],1:["sport",1],2:["tour",4],3:["sport",2],4:a=>/пианино/.test(T(a))?["music",1]:["music",0],5:["misc",1],6:["sport",3]},
+    misc:{0:["misc",0],1:a=>/концерт/.test(T(a))?["tour",3]:["tour",2],2:["misc",2]},
+    pets:{4:["pets",5]}, cloth:{3:a=>/час/.test(T(a))?["cloth",4]:["cloth",3]}
+  };
+  ADS.forEach(a=>{
+    const m = MAP[a.cat] && MAP[a.cat][a.sub]; if (!m) return;
+    const [c,s] = typeof m==="function" ? m(a) : m;
+    a.oc = a.cat; a.os = a.sub; a.cat = c; a.sub = s;
+  });
+  ADS.forEach(a=>{ // переименование характеристик под новые фильтры
+    const at = a.attrs;
+    if (a.cat==="comp" && a.sub===3 && at.gpu){ at.gmodel = at.gpu; delete at.gpu; }
+    if (a.cat==="music" && a.sub===0) at.gtype = /электро/.test(T(a)) ? "electric" : "acoustic";
+    if (a.cat==="music" && a.sub===1) at.ktype = "dpiano";
+    if (a.cat==="tour" && a.sub===4 && !at.gear) at.gear = "tent";
+    if (a.cat==="sport" && a.sub===2) at.wtype = /сноуборд/.test(T(a)) ? "board" : "ski";
+    if (a.cat==="cloth" && a.sub===4) at.jtype = "watch";
+    if (a.cat==="agro" && a.sub===5) at.gtype = /газонокос/.test(T(a)) ? "mower" : "garden_furn";
+  });
+})();
+
+/* ---- Видеокарты и процессоры: характеристики из справочников, цены — ориентировочные для макета ---- */
+(function(){
+  const gBase = m => /^GTX 9/.test(m)?700:/^GTX 10/.test(m)?1300:/^GTX 16/.test(m)?2100:/^RTX 20/.test(m)?3200:/^RTX 30/.test(m)?4300:/^RTX 40/.test(m)?7000:/^RTX 50/.test(m)?9800
+    :/^RX [45]\d0$/.test(m)?1100:/^RX 5\d00/.test(m)?2600:/^RX 6\d00/.test(m)?3900:/^RX 7\d00/.test(m)?6600:/^RX 9\d/.test(m)?9500:/^Arc/.test(m)?3300:/Vega|VII/.test(m)?2600:2500;
+  const gTier = m => /90/.test(m)?3.6:/80 Ti|80 Super|XTX/.test(m)?2.6:/80/.test(m)?2.2:/70 Ti|70 Super|XT$/.test(m)?1.6:/70/.test(m)?1.35:/60 Ti/.test(m)?1:/60|A750|A770|B580/.test(m)?.8:/50/.test(m)?.55:/30|40|A380|B570/.test(m)?.5:1;
+  const titles = ["Видеокарта","Видеокарта","Продаю видеокарту","Игровая видеокарта"];
+  const models = take(GPU_ALL, 46).concat(["RTX 4060","RTX 4070 Super","RTX 3060","RX 7800 XT","RTX 5070","RTX 4060 Ti"]);
+  models.forEach(m=>{
+    const v = GPU_VENDOR_OF(m), sp = GPU_SPEC[m]; if (!v || !sp) return;
+    const brand = v==="NVIDIA" ? pick(GPU_BRANDS.filter(b=>!/Sapphire|PowerColor|XFX/.test(b))) : v==="AMD" ? pick(["Sapphire","PowerColor","XFX","ASUS","MSI","Gigabyte","ASRock"]) : pick(["ASRock","Intel Limited Edition","Sparkle","Gunnir"]);
+    const cond = /^RTX 50|^RX 9/.test(m) ? (R()<.6?"new":"used") : R()<.15 ? "new" : "used";
+    const val = r100(gBase(m)*gTier(m)*(cond==="new"?1.15:1)), price = r100(val*(.8+R()*.38));
+    const outs = v==="NVIDIA" && /^GTX (9|10)/.test(m) ? ["HDMI","DisplayPort","DVI"] : ["HDMI","DisplayPort"];
+    const clock = /^RTX 50|^RX 9/.test(m) ? ri(2400,2900) : /^RTX 40|^RX 7/.test(m) ? ri(2300,2700) : /^RTX 30|^RX 6/.test(m) ? ri(1650,2500) : ri(1400,1900);
+    add({cat:"comp",sub:3,title:`${pick(titles)} ${brand==="NVIDIA Founders Edition"?"NVIDIA":brand} ${v==="NVIDIA"?"GeForce ":v==="AMD"?"Radeon ":"Intel "}${m} ${sp[0]}GB`,
+      price, val, cond, attrs:{gvendor:v, gseries:GPU_SERIES_OF(m), gmodel:m, gbrand:brand==="Intel Limited Edition"||brand==="Sparkle"||brand==="Gunnir"?undefined:brand,
+        vram:String(sp[0]), vtype:sp[1], bus:String(sp[2]), gclock:clock, outputs:outs, gpower:GPU_POWER_OF(m), mined: cond==="new" ? true : R()<.65},
+      ill:["gpu"]});
+  });
+  const cBase = m => /Ultra 9|i9|Ryzen 9/.test(m)?6200:/Ultra 7|i7|Ryzen 7/.test(m)?3800:/Ultra 5|i5|Ryzen 5/.test(m)?2100:1100;
+  const cAge = m => /1[01]\d{3}|[23]\d{3}(?!X3D)/.test(m.replace(/^.*?(i\d-|Ryzen \d )/,"")) ? .55 : /12\d{3}|5\d{3}/.test(m) ? .8 : 1.05;
+  take(CPU_ALL, 40).forEach(full=>{
+    const short = full.replace(/^(Intel|AMD) /,""), sp = CPU_SPEC[short]; if (!sp) return;
+    const brand = full.startsWith("Intel") ? "Intel" : "AMD", cond = R()<.2 ? "new" : "used", box = R()<.35;
+    const val = r100(cBase(short)*cAge(short)*(/X3D/.test(short)?1.45:1)*(cond==="new"?1.15:1)), price = r100(val*(.8+R()*.35));
+    add({cat:"comp",sub:4,title:`Процессор ${full}${box?" BOX":" OEM"}`,price,val,cond,
+      attrs:{cbrand:brand, cseries:CPU_SERIES_OF(full), cmodel:full, cgen:CPU_GEN_OF(full), cores:sp[0], threads:sp[1], socket:CPU_SOCKET_OF(full), box}, ill:["chip"]});
+  });
+})();
+
+/* ---- Объявления для новых подразделов. Тексты придуманы для макета. [раздел, подраздел, заголовок, цена, валюта?, характеристики?, рисунок?] ---- */
+const LIST2 = [
+ ["real",7,"Сдаётся комната студентке, Рышкановка, рядом с университетом",2500,0,{rooms:"1",sector:"Рышкановка",area:14}],["real",7,"Комната в общежитии 18 м², с ремонтом, продажа",14500,"EUR",{area:18,sector:"Ботаника"}],
+ ["real",7,"Комната в 3-комнатной квартире, хозяйка проживает отдельно",2200,0,{area:12,sector:"Центр"}],
+ ["real",8,"Сдаётся дом в Ставченах, 3 спальни, двор и мангал",650,"EUR",{rooms:"3",area:140,land:6}],["real",8,"Дом в аренду в Дурлештах, на длительный срок",500,"EUR",{rooms:"2",area:95,land:4}],
+ ["phones",2,"Apple Watch Series 9, 45 мм, аккумулятор 96%",5200,0,{brand:"Apple"}],["phones",2,"Samsung Galaxy Watch6 Classic 47 мм",3900,0,{brand:"Samsung"}],["phones",2,"Фитнес-браслет Xiaomi Smart Band 8",550,0,{brand:"Xiaomi"}],
+ ["phones",2,"Garmin Forerunner 265, для бега, полный комплект",5900,0,{brand:"Garmin"}],["phones",2,"Amazfit GTR 4, новые, запечатаны",2900,0,{brand:"Amazfit"},null,"new"],
+ ["phones",3,"Чехлы для iPhone 15 Pro, силиконовые, новые",150,0,{acc:"case"},null,"new"],["phones",3,"Зарядка 65W GaN, два USB-C",450,0,{acc:"charger"},null,"new"],["phones",3,"Пауэрбанк Anker 20000 мА·ч",650,0,{acc:"power"}],
+ ["phones",4,"Электронная книга Kindle Paperwhite 5, подсветка",1900,0,{}],["phones",4,"PocketBook 629 Verse, в обложке",1500,0,{}],
+ ["comp",2,"Мини-ПК Intel NUC, i5, 16 ГБ, SSD 512 ГБ",4900,0,{lcpu:"i5",ram:16,storage:"512",lpurpose:"office"}],["comp",2,"Моноблок Apple iMac 24″ M1, 8/256",15500,0,{lcpu:"m1",ram:8,storage:"256",lscreen:24}],
+ ["comp",2,"Моноблок Lenovo IdeaCentre AIO 3, 27″",9800,0,{lcpu:"r5",ram:16,storage:"512",lscreen:27}],
+ ["comp",5,"Материнская плата ASUS TUF B650-Plus WiFi",3300,0,{chipset:"B650",socket:"AM5",form:"ATX",ramtype:"DDR5"}],["comp",5,"MSI PRO B760M-A DDR4",2100,0,{chipset:"B760",socket:"LGA1700",form:"Micro-ATX",ramtype:"DDR4"}],
+ ["comp",5,"Gigabyte B550 Aorus Elite V2",1900,0,{chipset:"B550",socket:"AM4",form:"ATX",ramtype:"DDR4"}],["comp",5,"ASRock Z790 Steel Legend",4600,0,{chipset:"Z790",socket:"LGA1700",form:"ATX",ramtype:"DDR5"}],
+ ["comp",5,"Gigabyte B450M DS3H, с заглушкой",900,0,{chipset:"B450",socket:"AM4",form:"Micro-ATX",ramtype:"DDR4"}],
+ ["comp",6,"Kingston Fury Beast 32 ГБ (2×16) DDR5 6000",2100,0,{ramgb:"32",ramtype:"DDR5",ramfreq:6000}],["comp",6,"Corsair Vengeance LPX 16 ГБ (2×8) DDR4 3200",850,0,{ramgb:"16",ramtype:"DDR4",ramfreq:3200}],
+ ["comp",6,"G.Skill Trident Z5 RGB 64 ГБ DDR5 6400",4300,0,{ramgb:"64",ramtype:"DDR5",ramfreq:6400}],["comp",6,"Оперативная память 8 ГБ DDR4 2666 для ноутбука",350,0,{ramgb:"8",ramtype:"DDR4",ramfreq:2666}],
+ ["comp",7,"SSD Samsung 980 Pro 1 ТБ NVMe",1700,0,{dtype:"nvme",dcap:"1000"}],["comp",7,"SSD Kingston A400 480 ГБ SATA",550,0,{dtype:"sata",dcap:"512"}],["comp",7,"HDD WD Blue 2 ТБ, 7200 об/мин",900,0,{dtype:"hdd",dcap:"2000"}],
+ ["comp",7,"Внешний диск Seagate 4 ТБ USB 3.0",1600,0,{dtype:"ext",dcap:"4000"}],["comp",7,"SSD WD Black SN850X 2 ТБ",3000,0,{dtype:"nvme",dcap:"2000"},null,"new"],
+ ["comp",8,"Блок питания be quiet! Pure Power 12 M 850W",2300,0,{pwtype:"psu",watt:850,cert:"Gold"}],["comp",8,"Корпус Lian Li Lancool 216, белый",1900,0,{pwtype:"case",form:"ATX"}],
+ ["comp",8,"Блок питания Chieftec 600W, Bronze",800,0,{pwtype:"psu",watt:600,cert:"Bronze"}],["comp",8,"Корпус Fractal Design North, дерево",2600,0,{pwtype:"case",form:"ATX"}],
+ ["comp",9,"Кулер DeepCool AK620, башенный",1100,0,{cool:"air",socket:"AM5"}],["comp",9,"СЖО Arctic Liquid Freezer III 360",2100,0,{cool:"aio",socket:"LGA1700"}],["comp",9,"Вентиляторы Arctic P12, набор 5 шт",450,0,{cool:"fans"}],
+ ["comp",10,"Монитор LG UltraGear 27GP850, 2K 165 Гц",4900,0,{brand:"LG",mres:"2K (QHD)",mpanel:"IPS",refresh:"165 Гц",lscreen:27}],["comp",10,"Монитор Dell P2422H 24″ Full HD",2300,0,{brand:"Dell",mres:"Full HD",mpanel:"IPS",refresh:"60 Гц",lscreen:24}],
+ ["comp",10,"Samsung Odyssey G5 32″ изогнутый 144 Гц",4200,0,{brand:"Samsung",mres:"2K (QHD)",mpanel:"VA",refresh:"144 Гц",lscreen:32}],["comp",10,"ASUS ROG Swift OLED 27″ 240 Гц",14500,0,{brand:"ASUS",mres:"2K (QHD)",mpanel:"OLED",refresh:"240 Гц",lscreen:27}],
+ ["comp",10,"Монитор AOC 24G2 24″ 144 Гц",2200,0,{brand:"AOC",mres:"Full HD",mpanel:"IPS",refresh:"144 Гц",lscreen:23.8}],["comp",10,"LG 34WP65C ультраширокий 34″",5600,0,{brand:"LG",mres:"Ultrawide",mpanel:"VA",refresh:"144 Гц",lscreen:34}],
+ ["comp",11,"Механическая клавиатура Keychron K2, коричневые свитчи",1400,0,{kmtype:"kb",mech:true,wireless:true}],["comp",11,"Мышь Logitech G Pro X Superlight",1600,0,{kmtype:"mouse",wireless:true,mech:false}],
+ ["comp",11,"Комплект Logitech MK270, беспроводной",350,0,{kmtype:"set",wireless:true,mech:false}],["comp",11,"Игровая гарнитура HyperX Cloud II",1100,0,{kmtype:"headset",wireless:false,mech:false}],
+ ["comp",12,"Лазерный принтер HP LaserJet Pro M15w",1700,0,{prtype:"laser",colorprint:false,brand:"HP"}],["comp",12,"МФУ Epson L3250, СНПЧ, Wi-Fi",3300,0,{prtype:"mfu",colorprint:true,brand:"Epson"}],
+ ["comp",12,"МФУ Canon i-SENSYS MF3010",2200,0,{prtype:"mfu",colorprint:false,brand:"Canon"}],["comp",12,"3D-принтер Bambu Lab A1 mini",5600,0,{prtype:"3d",colorprint:true}],
+ ["comp",13,"Роутер TP-Link Archer AX55, Wi-Fi 6",1200,0,{ntype:"router"}],["comp",13,"Mesh-система Xiaomi, 2 модуля",1500,0,{ntype:"mesh"}],["comp",13,"Коммутатор на 8 портов, гигабитный",400,0,{ntype:"switch"}],["comp",13,"4G-модем Huawei, разблокирован",600,0,{ntype:"modem"}],
+ ["av",5,"DJI Mini 3, Fly More Combo, 3 батареи",9900,0,{brand:"DJI",vres:"4K",flight:38}],["av",6,"Проектор Xiaomi Wanbo T2 Max",2700,0,{brand:"Xiaomi",res:"Full HD",smart:true}],["av",6,"Проектор Epson EH-TW750, Full HD",6500,0,{res:"Full HD",smart:false}],
+ ["av",4,"Экшн-камера DJI Osmo Action 4",5400,0,{brand:"DJI",vres:"4K"}],["av",2,"Наушники Sony WF-1000XM5, TWS",3900,0,{htype:"tws",anc:true,brand:"Sony"}],["av",2,"Marshall Major IV, коричневые",1600,0,{htype:"over",anc:false,brand:"Marshall"}],
+ ["build",5,"Газовый котёл Ariston двухконтурный 24 кВт",9500,0,{heat:"boiler"}],["build",5,"Радиаторы алюминиевые, 10 секций, 6 шт",3600,0,{heat:"rad"}],["build",5,"Камин-печь чугунная, с трубой",7800,0,{heat:"stove"}],["build",5,"Рекуператор для квартиры",4200,0,{heat:"vent"}],
+ ["cloth",4,"Золотое кольцо 585, размер 17",4300,0,{jtype:"ring",metal:"gold",gender:"w"}],["cloth",4,"Серебряная цепочка 925, 55 см",900,0,{jtype:"chain",metal:"silver",gender:"u"}],
+ ["cloth",4,"Часы Seiko 5 Sports, автоподзавод",3400,0,{jtype:"watch",metal:"steel",gender:"m"}],["cloth",4,"Серьги с фианитами, серебро",650,0,{jtype:"ear",metal:"silver",gender:"w"}],
+ ["furn",5,"Офисное кресло эргономичное, сетка",2400,0,{ftype:"chair"}],["furn",5,"Стол руководителя с тумбой",4900,0,{ftype:"desk",material:"chip"}],["furn",5,"Стеллаж для офиса, металл, 5 полок",900,0,{ftype:"shelf",material:"metal"}],["furn",5,"Стол-трансформер с электроприводом",5600,0,{ftype:"desk",material:"metal"},null,"new"],
+ ["agro",5,"Теплица из поликарбоната 3×6 м",8900,0,{gtype:"greenhouse"},null,"new"],["agro",5,"Триммер бензиновый Husqvarna",3200,0,{gtype:"mower"}],["agro",5,"Садовый инвентарь: лопаты, грабли, тяпки",350,0,{gtype:"tools"}],
+ ["pets",4,"Шиншиллы, мальчик и девочка, с клеткой",1500,0,{sex:"m"}],["pets",4,"Декоративные кролики, 2 месяца",350,0,{sex:"f"}],["pets",4,"Морская свинка с домиком",400,0,{sex:"f"}],
+ ["pets",6,"Монстера большая, 1.2 м",650,0,{plant:"indoor"}],["pets",6,"Фикус Бенджамина в горшке",350,0,{plant:"indoor"}],["pets",6,"Розы, саженцы, 20 сортов",60,0,{plant:"garden"}],["pets",6,"Коллекция кактусов и суккулентов",250,0,{plant:"succ"}],
+ ["sport",4,"Электросамокат Xiaomi Mi 4 Pro",7400,0,{rtype:"escoot"}],["sport",4,"Ролики детские раздвижные 31–34",500,0,{rtype:"roller"}],["sport",4,"Скейтборд, дека клён",650,0,{rtype:"skate"}],["sport",4,"Самокат трюковой",900,0,{rtype:"kick"}],
+ ["sport",5,"Тонометр Omron M3, автомат",750,0,{mtype:"bp"}],["sport",5,"Ходунки для взрослых, складные",600,0,{mtype:"walk"}],["sport",5,"Массажёр для шеи и спины",900,0,{mtype:"massage"}],
+ ["sport",6,"Мяч футбольный Adidas, размер 5",450,0,{}],["sport",6,"Баскетбольная стойка уличная",3800,0,{}],["sport",6,"Ракетки для настольного тенниса, комплект",500,0,{}],
+ ["beauty",0,"Набор корейской косметики для лица, новый",650,0,{btype:"kbeauty",gender:"w",sealed:true},null,"new"],["beauty",0,"Палетка теней, использовалась 2 раза",300,0,{btype:"makeup",gender:"w",sealed:false}],
+ ["beauty",0,"Крем La Roche-Posay Cicaplast, 100 мл",250,0,{btype:"face",bbrand:"La Roche-Posay",gender:"u",sealed:true},null,"new"],["beauty",1,"Парфюмерная вода, 100 мл, оригинал с чеком",1900,0,{ptype:"edp",gender:"w",vol:100,bbrand:"Dior"}],
+ ["beauty",1,"Мужская туалетная вода, 50 мл",1200,0,{ptype:"edt",gender:"m",vol:50,bbrand:"Chanel"}],["beauty",1,"Отливанты нишевой парфюмерии, 5 мл",120,0,{ptype:"sample",gender:"u",vol:5}],
+ ["beauty",2,"Набор для ухода за волосами, шампунь и маска",350,0,{gender:"w"}],["beauty",3,"Фен Dyson Supersonic, полный комплект",6900,0,{dtype:"dryer",bbrand:"Dyson"}],
+ ["beauty",3,"Эпилятор Braun Silk-épil 9",1300,0,{dtype:"epil",bbrand:"Braun"}],["beauty",3,"Триммер Philips OneBlade",650,0,{dtype:"shaver",bbrand:"Philips"}],
+ ["beauty",4,"Лампа для маникюра UV/LED 48 Вт",450,0,{}],["beauty",4,"Набор гель-лаков, 24 цвета",600,0,{},null,"new"],
+ ["tour",0,"Тур в Анталью, 7 ночей, всё включено, вылет из Кишинёва",780,"EUR",{to:"Анталья",nights:7,meals:"ai",pax:2}],["tour",0,"Египет, Хургада, 10 ночей, отель 5*",920,"EUR",{to:"Хургада",nights:10,meals:"ai",pax:2}],
+ ["tour",0,"Автобусный тур Будапешт — Вена, 5 дней",390,"EUR",{to:"Будапешт",nights:4,meals:"bb",pax:1}],["tour",0,"Выходные в Батуми, перелёт и отель",450,"EUR",{to:"Батуми",nights:3,meals:"bb",pax:1}],
+ ["tour",1,"Авиабилет Кишинёв — Рим, туда и обратно",3200,0,{from:"Кишинёв",to:"Рим",ticket:"round",class:"eco",pax:1}],["tour",1,"Билет Кишинёв — Стамбул, в одну сторону",2100,0,{from:"Кишинёв",to:"Стамбул",ticket:"oneway",class:"eco",pax:1}],
+ ["tour",1,"Два билета Кишинёв — Лондон, возврат через неделю",9800,0,{from:"Кишинёв",to:"Лондон",ticket:"round",class:"eco",pax:2}],["tour",1,"Бизнес-класс Кишинёв — Дубай",18500,0,{from:"Кишинёв",to:"Дубай",ticket:"round",class:"biz",pax:1}],
+ ["tour",2,"Автобус Кишинёв — Яссы, ежедневно",250,0,{from:"Кишинёв",to:"Яссы",ticket:"oneway",carrier:"Автовокзал (рейсовый)",pax:1}],["tour",2,"Поезд Кишинёв — Бухарест, купе",650,0,{from:"Кишинёв",to:"Бухарест",ticket:"oneway",carrier:"CFM (поезд)",pax:1}],
+ ["tour",2,"Пассажирские перевозки Бельцы — Варшава",1500,0,{from:"Бельцы",to:"Варшава",ticket:"oneway",carrier:"Частный перевозчик",pax:1}],["tour",2,"Микроавтобус Кишинёв — Одесса, от двери до двери",400,0,{from:"Кишинёв",to:"Одесса",ticket:"oneway",carrier:"Частный перевозчик",pax:1}],
+ ["tour",3,"Билеты в оперу, 2 места в партере",900,0,{etype:"theatre",venue:"Национальный театр оперы и балета",tcat:"seat"}],["tour",3,"Билет на фестиваль, 3 дня",1100,0,{etype:"festival",venue:"Другое",tcat:"fan"}],
+ ["tour",3,"Детский спектакль, 3 билета",300,0,{etype:"kids",venue:"Дворец Республики",tcat:"seat"}],["tour",3,"Футбол: 2 билета на матч сборной",600,0,{etype:"sport",venue:"Стадион Зимбру",tcat:"seat"}],
+ ["tour",4,"Рюкзак туристический 65 л",1100,0,{gear:"bag"}],["tour",4,"Спальник до −5°, лёгкий",700,0,{gear:"sleep"}],["tour",5,"База отдыха у озера, домики на выходные",1200,0,{rest:"base",nights:2}],
+ ["tour",5,"Экскурсия по винодельне с дегустацией",550,0,{rest:"winery",nights:2}],["tour",5,"Коттедж в Вадул-луй-Водэ, до 8 гостей",2500,0,{rest:"cottage",nights:2}],
+ ["biz",3,"Франшиза кофейни «с собой», готовая модель",15000,"EUR",{bsphere:"food",payback:18}],["biz",3,"Франшиза пункта выдачи заказов",4000,"EUR",{bsphere:"retail",payback:12}],
+ ["music",2,"Ударная установка Pearl Roadshow, полный комплект",7500,0,{mbrand:"Pearl"}],["music",2,"Электронные барабаны Roland TD-07",11500,0,{mbrand:"Roland"}],
+ ["music",3,"Скрипка 4/4 с футляром и смычком",2400,0,{case:true}],["music",3,"Саксофон альт Yamaha YAS-280",14500,0,{mbrand:"Yamaha",case:true}],["music",3,"Укулеле сопрано",650,0,{}],
+ ["music",4,"Комбоусилитель Fender Champion 40",2600,0,{stype:"amp",mbrand:"Fender"}],["music",4,"Микшер Behringer Xenyx 1202",1500,0,{stype:"mixer",mbrand:"Behringer"}],["music",4,"Микрофон Shure SM58",1600,0,{stype:"mic",mbrand:"Shure"}],
+ ["music",0,"Электрогитара Fender Stratocaster Player",13500,0,{gtype:"electric",mbrand:"Fender"}],["music",0,"Классическая гитара Cort, для учёбы",1600,0,{gtype:"classic",mbrand:"Cort"}],["music",1,"Синтезатор Yamaha PSR-E373",3900,0,{ktype:"synth",keys:"61",mbrand:"Yamaha"}],
+ ["appl",6,"Посудомоечная машина Bosch, 60 см, встраиваемая",7900,0,{brand:"Bosch",install:"built",dwidth:"60 см"}],["appl",6,"Посудомойка Beko 45 см",4600,0,{brand:"Beko",install:"free",dwidth:"45 см"}],
+ ["appl",7,"Бойлер Ariston 80 л",3200,0,{volume:80}],["appl",7,"Проточный водонагреватель 5.5 кВт",1300,0,{}],["appl",5,"Аэрогриль Philips XXL",2900,0,{brand:"Philips",kitch:"multi"}],
+ ["party",0,"Свадебное платье, ручная вышивка, размер S",8500,0,{size:"S",deal:"sale",color:"white"}],["party",0,"Прокат свадебных платьев, более 40 моделей",2500,0,{deal:"rent",color:"white"}],["party",0,"Мужской свадебный костюм-тройка",3200,0,{size:"L",deal:"sale",color:"blue"}],
+ ["party",1,"Вечернее платье в пол, изумрудное",1900,0,{size:"M",deal:"sale",color:"green"}],["party",1,"Платье на выпускной, прокат",700,0,{size:"S",deal:"rent",color:"red"}],
+ ["party",2,"Оформление шарами и фотозона",1500,0,{occasion:"birthday"}],["party",2,"Декор зала к свадьбе под ключ",9000,0,{occasion:"wedding"}],["party",2,"Новогодние украшения, ёлка 2 м",1200,0,{occasion:"newyear"}],
+ ["party",3,"Подарочные корзины на заказ",600,0,{occasion:"corporate"}],["party",3,"Именные подарки для крестин",350,0,{occasion:"christen"}],
+ ["party",4,"Букеты на заказ, доставка по Кишинёву",450,0,{}],["party",4,"Пионы оптом, сезон",35,0,{}],["party",4,"101 роза в коробке",3500,0,{}],
+ ["party",5,"Зал на 120 гостей для свадеб и крестин",0,0,{rent:"hall",deal:"rent",occasion:"wedding"}],["party",5,"Ретро-автомобиль на свадьбу",3000,0,{rent:"car",deal:"rent",occasion:"wedding"}],["party",5,"Аренда шатра и мебели для праздника",4500,0,{rent:"equip",deal:"rent",occasion:"birthday"}],
+ ["kids",5,"Школьный рюкзак ортопедический",700,0,{age:"7"}],["kids",5,"Школьная форма на мальчика, 128 см",500,0,{age:"7"}],["kids",5,"Набор канцелярии к 1 сентября",250,0,{age:"7"},null,"new"],
+ ["kids",6,"Молокоотсос Philips Avent электрический",1400,0,{age:"0"}],["kids",6,"Радионяня с камерой",1100,0,{age:"0"}],["kids",6,"Стульчик для кормления",900,0,{age:"0"}],
+ ["homeoffice",0,"Набор кастрюль из нержавейки, 6 предметов",1300,0,{dish:"pots"},null,"new"],["homeoffice",0,"Сервиз столовый на 6 персон",900,0,{dish:"sets"}],["homeoffice",0,"Набор кухонных ножей с подставкой",750,0,{dish:"knives"}],
+ ["homeoffice",0,"Бокалы для вина, 6 шт, хрусталь",500,0,{dish:"glass"}],["homeoffice",1,"Бытовая химия оптом, для офиса",0,0,{wholesale:true}],["homeoffice",1,"Пароочиститель для дома",1600,0,{}],
+ ["homeoffice",2,"Бумага A4, коробка 5 пачек",450,0,{office:"paper",wholesale:true}],["homeoffice",2,"Маркерная доска 90×120",800,0,{office:"boards"}],["homeoffice",2,"Папки и органайзеры для офиса",150,0,{office:"folders"}],
+ ["homeoffice",3,"Система хранения для гардероба",1900,0,{}],["homeoffice",3,"Контейнеры для хранения, 10 шт",400,0,{}],["homeoffice",4,"Сейф мебельный с кодовым замком",1800,0,{}],["homeoffice",4,"Камера видеонаблюдения Wi-Fi, 2 шт",900,0,{}],
+ ["misc",1,"Учебники для 9 класса, комплект",400,0,{genre:"edu",blang:"ru"}],["misc",1,"Детские книги, 25 штук",350,0,{genre:"kids",blang:"ro"}],["misc",1,"Манга, 12 томов",900,0,{genre:"comics",blang:"en"}],["misc",1,"Книги по бизнесу и саморазвитию",500,0,{genre:"business",blang:"ru"}],
+ ["misc",0,"Картина маслом, пейзаж Молдовы, 60×80",3500,0,{coll:"art"}],["misc",0,"Значки СССР, коллекция 200 шт",1500,0,{coll:"badges"}],
+ ["dating",0,"Мужчина 38 лет ищет спутницу для серьёзных отношений",0,0,{dage:38,goal:"serious"}],["dating",0,"Познакомлюсь с девушкой для прогулок и путешествий",0,0,{dage:31,goal:"hobby"}],
+ ["dating",1,"Женщина 45 лет, хочу встретить надёжного человека",0,0,{dage:45,goal:"family"}],["dating",1,"Ищу спутника для походов в горы и на природу",0,0,{dage:29,goal:"hobby"}],
+ ["dating",2,"Ищу компанию для настольных игр по выходным",0,0,{dage:27,goal:"friends"}],["dating",2,"Клуб общения на английском, приглашаю всех",0,0,{dage:35,goal:"friends"}],
+ ["serv",7,"СТО: ремонт ходовой и двигателя",0,0,{astype:"service"}],["serv",7,"Шиномонтаж с выездом",150,0,{astype:"tires"}],["serv",7,"Химчистка салона авто",900,0,{astype:"wash"}],["serv",7,"Компьютерная диагностика авто",300,0,{astype:"diag"}],
+ ["serv",8,"Фото и видеосъёмка свадеб",6000,0,{etype:"photo"}],["serv",8,"Ведущий и диджей на праздник",5000,0,{etype:"host"}],["serv",8,"Кейтеринг на мероприятия",0,0,{etype:"cater"}]
+];
+LIST2.forEach(([cat,sub,title,price,cur,attrs,ill,cond])=>{
+  for (let rep=0; rep<(R()<.55?2:1); rep++){
+    const p = price===0||price<100||cat==="dating" ? price : r10(price*(rep?(.85+R()*.3):1));
+    add({cat,sub,title,price:p,cur:cur||"MDL",attrs:Object.assign({},attrs),ill:ill||undefined,
+      cond: cond || (["serv","dating","tour","biz"].includes(cat) ? "used" : undefined), priv: cat==="dating" ? true : undefined});
+  }
+});
+/* даты для билетов и туров: от ближайших дней до трёх месяцев вперёд */
+(function(){
+  const iso = d => new Date(d).toISOString().slice(0,10);
+  ADS.forEach(a=>{
+    if (a.cat!=="tour") return; const at=a.attrs;
+    if ([0,1,2].includes(a.sub) && !at.depart){ const d = NOW + ri(3,90)*864e5; at.depart = iso(d); if (a.sub===0 || at.ticket==="round") at.ret = iso(d + (at.nights||ri(3,10))*864e5); }
+    if (a.sub===3 && !at.edate) at.edate = iso(NOW + ri(5,80)*864e5);
+  });
+})();
+
 /* ---- Продавцы: рейтинг, отзывы, проверка документов ---- */
-const SHOPS = [["TechPoint","elec"],["PC Master","elec"],["AutoLux Chișinău","auto"],["Casa Mobila","home"],["Kids World MD","kids"],["Imobil Expert","real"],["Fashion Hub","cloth"],["BuildPro","build"],["Electro Casa","appl"],["Sport Life","sport"]];
+const SHOPS = [["TechPoint","phones"],["PC Master","comp"],["AutoLux Chișinău","auto"],["Casa Mobila","furn"],["Kids World MD","kids"],["Imobil Expert","real"],["Fashion Hub","cloth"],["BuildPro","build"],["Electro Casa","appl"],["Sport Life","sport"],["Foto Video Pro","av"],["Beauty Box","beauty"],["Travel Point","tour"],["Music Store MD","music"],["Flori & Decor","party"]];
 const SELLERS = [];
 for (let i=0;i<80;i++){
   const r = Math.round((3.7 + R()*1.3)*10)/10;
@@ -219,7 +385,7 @@ for (let i=0;i<80;i++){
 }
 SHOPS.forEach(([name,cat],i)=>SELLERS.push({id:100+i, name, type:"company", cat, rating: Math.round((4.5+R()*.5)*10)/10, reviews: ri(60,900), since: ri(2014,2022), verified:true, reply:"min", sold: ri(400,5000)}));
 const sellerOf = a => SELLERS.find(s=>s.id===a.seller) || {id:0,name:a.name,type:"private",rating:0,reviews:0,since:2026,verified:false,reply:"day",sold:0};
-const DELIVERABLE = {elec:[0,1,2,3,4,5,6,7,8], cloth:[0,1,2,3], kids:[1,2,4], home:[2,3,5], appl:[4,5], sport:[1,2,3,4,5,6], build:[1,2,3], pets:[4], misc:[0,1,2], auto:[6,7]};
+const DELIVERABLE = {phones:[0,1,2,3,4], comp:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14], av:[0,1,2,3,4,5,6], cloth:[0,1,2,3,4], kids:[1,2,4,5,6], furn:[2,3,4], appl:[4,5], sport:[0,1,3,4,5,6], build:[1,2,3], pets:[5], misc:[0,1,2], auto:[6,7], beauty:[0,1,2,3,4], music:[0,1,2,3,4], homeoffice:[0,1,2,3,4], party:[3,4], tour:[4]};
 ADS.forEach(a=>{
   if (a.priv) a.seller = 1 + Math.floor(R()*80);
   else { const shops = SELLERS.filter(s=>s.type==="company" && s.cat===a.cat); a.seller = shops.length ? pick(shops).id : 1 + Math.floor(R()*80); }
@@ -250,9 +416,34 @@ function reviewsOf(s){
 const PALETTE = ["#2f6fd6","#c0392b","#2d2f33","#e9ebee","#1f8a5b","#7a5cc4","#d98a1f","#5f6b75","#b8bec4","#0f5c45"];
 function illFor(a){
   const col = PALETTE[a.id % PALETTE.length], t = a.title.toLowerCase();
+  const NEW = {
+    real:{7:()=>["flat","#f3e3e3"],8:()=>["house"]},
+    phones:{0:()=>["phone",["#1d1d22","#5b4a7a","#1f2a4a","#d9dce0","#2f6b4f"][a.id%5]],1:()=>["tablet","#2b2b2b"],2:()=>["watch",["#2a2d33","#c9ced3","#1f2a4a"][a.id%3]],3:()=>/пауэр|заряд/.test(t)?["gear"]:["phone","#e5484d",true],4:()=>["tablet","#5f6b75"]},
+    comp:{2:()=>/imac|моноблок/.test(t)?["monitor","#c9ced3"]:["pc"],5:()=>["chip","#16181d"],6:()=>["ram",col],7:()=>/hdd|внешн/.test(t)?["box"]:["ram","#16181d"],8:()=>/корпус/.test(t)?["pc"]:["box"],9:()=>["gpu"],
+      10:()=>["monitor"],11:()=>["keyboard",["#2a2d33","#e9ebee","#5f6b75"][a.id%3]],12:()=>["printer"],13:()=>["router"]},
+    av:{2:()=>["headphones",col],4:()=>["camera"],5:()=>["camera"],6:()=>["tv"]},
+    build:{5:()=>["tools"]}, cloth:{4:()=>/час/.test(t)?["watch","#b8bec4"]:["coin"]},
+    furn:{5:()=>/кресл/.test(t)?["sofa","#2a2d33"]:["table","#5f6b75"]},
+    agro:{5:()=>/теплиц/.test(t)?["land",true]:/триммер/.test(t)?["tools"]:["tools"]},
+    pets:{4:()=>["cat"],5:()=>["bag","#e5484d"],6:()=>["plant",["#3aa34d","#2f8f5b","#65a30d"][a.id%3]]},
+    sport:{4:()=>/электро/.test(t)?["bike","#2a2d33"]:["bike",col],5:()=>["box"],6:()=>["dumbbell","#e5484d"]},
+    beauty:{0:()=>["beauty"],1:()=>["perfume",["#c026d3","#d4a017","#2f6fd6"][a.id%3]],2:()=>["perfume","#1f8a5b"],3:()=>["beauty"],4:()=>["beauty"]},
+    tour:{0:()=>["plane","#0284c7"],1:()=>["plane",col],2:()=>/поезд/.test(t)?["ticket"]:["van","#0f5c45"],3:()=>["ticket"],4:()=>["tent",col],5:()=>["house"]},
+    biz:{3:()=>["briefcase","#334155"]},
+    music:{0:()=>["guitar"],1:()=>["piano"],2:()=>["drum"],3:()=>["guitar"],4:()=>["headphones","#2a2d33"]},
+    appl:{6:()=>["washer"],7:()=>["fridge","#f4f6f8"]},
+    party:{0:()=>["dress",/костюм/.test(t)?"#1f2a4a":"#f8fafc"],1:()=>["dress",["#1f8a5b","#e5484d","#7a5cc4"][a.id%3]],2:()=>["hearts","#f59e0b"],3:()=>["box"],4:()=>["bouquet",["#e5484d","#f472b6","#f59e0b"][a.id%3]],5:()=>/авто/.test(t)?["car","#f4f6f8","sedan"]:["building"]},
+    kids:{5:()=>/рюкзак/.test(t)?["bag","#2f6fd6"]:/форм/.test(t)?["shirt","#1f2a4a"]:["book"],6:()=>["stroller","#f4f6f8"]},
+    homeoffice:{0:()=>["dishes"],1:()=>["vacuum"],2:()=>/доск/.test(t)?["monitor","#f4f6f8"]:["book","#5f6b75"],3:()=>["box"],4:()=>/камер/.test(t)?["camera"]:["box"]},
+    misc:{1:()=>["book",col]},
+    dating:{0:()=>["hearts"],1:()=>["hearts","#e11d48"],2:()=>["hearts","#7a5cc4"]},
+    serv:{7:()=>["car",col,"sedan"],8:()=>["camera"]}
+  };
+  if (!a.oc && NEW[a.cat] && NEW[a.cat][a.sub]) return NEW[a.cat][a.sub]();
+  const oc = a.oc || a.cat, os = a.oc ? a.os : a.sub;
   const m = {
     auto:[()=>["car",col,a.attrs.body==="suv"||a.attrs.body==="van"?"suv":a.attrs.body==="sedan"?"sedan":"hatch"],()=>["van",col],()=>["moto",col],()=>["van","#f2c94c"],()=>["tractor","#f5a524"],()=>["van","#8f989f"],
-      ()=>/шин|колод|аккум/.test(t)?["tire"]:["gear"],()=>["tire"],()=>["boat",col]],
+      ()=>/шин|колод|аккум/.test(t)?["tire"]:["gear"],()=>["tire"],()=>["boat",col],()=>["van","#e9ebee"]],
     real:[()=>a.attrs.building==="new"&&a.id%2?["building"]:["flat",["#efe2d0","#dce9f2","#e7efe0","#f3e3e3"][a.id%4]],()=>["house"],()=>["flat",["#dce9f2","#efe2d0"][a.id%2]],()=>["flat","#f3e3e3"],()=>["land"],()=>["building"],()=>["house"]],
     job:[()=>/продав|кассир|промоут/.test(t)?["register"]:/водит|курьер/.test(t)?["van",col]:/разработ|developer|it|qa/.test(t)?["laptop","#2b2b2b"]:/повар/.test(t)?["coffee"]:/плиточ|сборк|бригад/.test(t)?["drill","#f5a524"]:["briefcase","#5b4636"]],
     elec:[()=>["phone",["#1d1d22","#5b4a7a","#1f2a4a","#d9dce0","#2f6b4f"][a.id%5]],()=>["laptop",a.attrs.brand==="Apple"?"#c9ced3":"#2b2b2b"],()=>["pc"],()=>["tablet","#2b2b2b"],()=>["tv"],
@@ -270,8 +461,8 @@ function illFor(a){
     biz:[()=>["coffee"],()=>["building"],()=>["building"]],
     free:[()=>["box"],()=>["box"],()=>/кот/.test(t)?["cat"]:["dog"]],
     misc:[()=>["coin"],()=>["ticket"],()=>["box"]]
-  }[a.cat];
-  return (m && (m[a.sub]||m[0]))();
+  }[oc];
+  return m ? (m[os]||m[0])() : ["box"];
 }
 const DESC_BANK = {
   open_used:["Пользовался аккуратно, всё полностью рабочее.","Состояние хорошее: есть небольшие следы использования, на работу никак не влияют.","В отличном состоянии, без ремонтов и вскрытий.","Был в использовании около года, всё исправно."],
@@ -300,15 +491,32 @@ const DESC_BANK = {
   agro:["Своё хозяйство, без лишней химии.","Есть в наличии, отгрузка сразу.","Доставка по району — договоримся.","Цена указана за единицу, оптом дешевле."],
   biz:["Оборудование рабочее, можно посмотреть в действии.","Подробности и документы — в чате.","Помогу с перевозкой и подключением."],
   free:["Отдам сегодня-завтра, самовывоз.","Просто освобождаем место — заберите, пожалуйста.","Подробности в чате."],
+  comp_3:["Температуры под нагрузкой в норме, вентиляторы без треска.","Термопасту и прокладки менял недавно.","Можно проверить в тестах и играх при встрече.","Коробка и чек сохранились."],
+  comp_4:["Работал без разгона, температуры в норме.","Можно проверить на моей материнской плате.","Термопаста свежая, ножки / контакты целые."],
+  comp_5:["Все слоты и порты рабочие, BIOS обновлён.","Комплект: коробка, заглушка, Wi-Fi антенны."],comp_6:["Тест памяти проходит без ошибок.","Профиль XMP / EXPO работает стабильно."],
+  comp_7:["Здоровье накопителя по SMART — 100%.","Отдам с переходником и винтами."],comp_8:["Не шумит, все кабели в комплекте.","Модульные кабели, коробка есть."],
+  comp_10:["Битых пикселей нет, засветы минимальные.","Подставка регулируется по высоте и наклону.","Кабель DisplayPort в комплекте."],
+  comp_12:["Печатает чисто, картридж / чернила почти полные.","Подключается по Wi-Fi к телефону."],
+  phones_2:["Ремешок в комплекте, второй — в подарок.","Аккумулятор держит 2–3 дня."],
+  beauty:["Срок годности в порядке, хранилось без солнца.","Оригинал, могу показать коды и чек.","Подойдёт в подарок."],
+  tour:["Цена указана на одного человека, если не сказано иное.","Помогу с документами и трансфером.","Даты можно сдвинуть по договорённости.","Билеты оформляются на ваше имя."],
+  music:["Строй держит, звук чистый.","Подойдёт и для начинающих, и для выступлений.","Можно попробовать на месте."],
+  party:["Работаем по всей Молдове.","Фото работ пришлю в чат.","Бронируйте заранее — в сезон всё быстро занимают."],
+  homeoffice:["Можно забрать в центре или отправить доставкой.","Оптом — скидка."],furn:["Без сколов и пятен, из некурящей квартиры.","Помогу с погрузкой."],
+  phones:["Не ремонтировался и не вскрывался.","Все функции проверены, можно протестировать при встрече."],comp:["Всё проверено, работает стабильно.","Можно проверить при встрече."],av:["Работает отлично, всё проверено.","Есть коробка и документы."],
+  dating:["Не курю, работаю, люблю путешествия и хорошую музыку.","Спокойный характер, ценю честность и чувство юмора.","Люблю природу, книги и прогулки по вечернему Кишинёву."],
+  dating2:["Хочу познакомиться с человеком со схожими интересами.","Буду рад(а) переписке, а потом встрече за чашкой кофе.","Без спешки — сначала пообщаемся."],
   misc:["Подробности в чате.","Могу отправить доставкой.","Торг уместен при быстрой сделке."],
   close:["Торг уместен.","Звоните или пишите в чат.","Смотреть можно в любой день после 17:00.","Пишите — отвечу быстро.","Без перекупщиков, пожалуйста.","Возможен обмен — предлагайте."]
 };
 function descFor(a){
   const c = catOf(a.cat), lines = [];
-  if (!["job","serv","free","real","agro"].includes(a.cat)) lines.push(said(a.cond==="new"?DESC_BANK.open_new:DESC_BANK.open_used));
+  if (a.cat==="dating") return [said(DESC_BANK.dating), said(DESC_BANK.dating2), "Пишите в чат сайта — номер телефона дам после знакомства."].join("\n");
+  if (!["job","serv","free","real","agro","tour"].includes(a.cat)) lines.push(said(a.cond==="new"?DESC_BANK.open_new:DESC_BANK.open_used));
   const sl = specLine(a, 5);
   if (sl.split(" · ").length >= 2) lines.push("Коротко о главном: " + sl + ".");
-  const bank = a.cat==="elec" ? [...(DESC_BANK.elec_sub[a.sub]||[]), ...DESC_BANK.elec] : (DESC_BANK[a.cat]||DESC_BANK.misc);
+  const oc = a.oc || a.cat, os = a.oc ? a.os : a.sub;
+  const bank = oc==="elec" ? [...(DESC_BANK.elec_sub[os]||[]), ...DESC_BANK.elec] : DESC_BANK[a.cat+"_"+a.sub] || DESC_BANK[oc] || DESC_BANK[a.cat] || DESC_BANK.misc;
   lines.push(...take(bank, a.cat==="serv"||a.cat==="job"?3:2));
   lines.push(said(DESC_BANK.close));
   return lines.join("\n");
