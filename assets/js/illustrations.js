@@ -179,5 +179,10 @@ DRAW.bird = () => `<rect x="190" y="40" width="8" height="220" fill="#8a6a4a" op
   ${[[150,"#5fd16f","#3aa34d"],[250,"#5aa9f2","#2f7fd0"]].map(([x,c,d])=>`<ellipse cx="${x}" cy="178" rx="36" ry="48" fill="${c}"/><circle cx="${x}" cy="118" r="30" fill="${c}"/><path d="M${x-6} 210 L${x-16} 262 L${x+8} 262 Z" fill="${d}"/>
   <path d="M${x+20} 150 Q${x+52} 180 ${x+26} 214" fill="${d}"/><circle cx="${x+10}" cy="112" r="6" fill="#fff"/><circle cx="${x+11}" cy="112" r="3" fill="#1f2326"/><path d="M${x+26} 118 l14 6 l-14 6z" fill="#f5a524"/>
   <path d="M${x-14} 228 l-4 8 M${x+8} 228 l4 8" stroke="#f5a524" stroke-width="4"/>`).join("")}`;
+DRAW.fishing = () => `<rect x="0" y="196" width="400" height="104" fill="#6fb3d9"/><path d="M0 206 q25 -8 50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0" fill="none" stroke="#fff" stroke-width="3" opacity=".6"/>
+  <path d="M40 250 L300 40" stroke="#2a2d33" stroke-width="7" stroke-linecap="round"/><path d="M40 250 L110 194" stroke="#b5523b" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="124" cy="196" r="16" fill="#8f989f" stroke="#2a2d33" stroke-width="4"/><path d="M300 40 Q330 120 312 176" fill="none" stroke="#2a2d33" stroke-width="1.5"/>
+  <g transform="rotate(-25 300 196)"><ellipse cx="300" cy="196" rx="36" ry="16" fill="#c9a227"/><path d="M334 196 l20 -14 l0 28z" fill="#c9a227"/><circle cx="278" cy="192" r="3.5" fill="#1f2326"/></g>
+  <circle cx="312" cy="176" r="4" fill="#e5484d"/>`;
 const _illCache = {};
 function illCached(key, name, ...args){ return _illCache[key] ||= illustrate(name, ...args); }

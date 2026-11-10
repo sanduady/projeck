@@ -2,6 +2,8 @@
 let seed = 11; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const ri = (a,b) => a + Math.floor(R()*(b-a+1));
 const pick = a => a[Math.floor(R()*a.length)];
+const said = arr => arr[Math.floor(R()*arr.length)];
+const take = (arr, n) => { const c = arr.slice(), out=[]; while (out.length<n && c.length) out.push(c.splice(Math.floor(R()*c.length),1)[0]); return out; };
 const r100 = n => Math.round(n/100)*100, r10 = n => Math.round(n/10)*10, r500 = n => Math.round(n/500)*500;
 const NOW = Date.now();
 const DESCS = {
@@ -17,19 +19,30 @@ function add(o){
 }
 // --- Transport
 (function(){
-  const cars=[["Toyota","Camry",23000,"sedan"],["Toyota","RAV4",27000,"suv"],["Toyota","Corolla",17000,"sedan"],["Volkswagen","Passat",19000,"wagon"],["Volkswagen","Golf",15000,"hatch"],["Volkswagen","Touran",14000,"van"],
-   ["BMW","5 Series",33000,"sedan"],["BMW","X5",42000,"suv"],["Mercedes-Benz","E-Class",34000,"sedan"],["Mercedes-Benz","GLC",40000,"suv"],["Skoda","Octavia",16000,"wagon"],["Skoda","Superb",21000,"sedan"],
-   ["Dacia","Logan",9500,"sedan"],["Dacia","Duster",13000,"suv"],["Renault","Megane",12000,"hatch"],["Hyundai","Tucson",22000,"suv"],["Kia","Sportage",22000,"suv"],["Ford","Focus",11000,"hatch"],["Opel","Astra",10500,"wagon"],["Lexus","RX",39000,"suv"],["Tesla","Model 3",32000,"sedan"]];
-  const fuelW=["petrol","petrol","diesel","diesel","gas","hybrid"];
-  for(let i=0;i<90;i++){
-    const [b,m,base,body]=pick(cars), year=ri(2006,2023);
-    const fuel = b==="Tesla"?"electric": (b==="Toyota"||b==="Lexus")&&R()<.5?"hybrid":pick(fuelW);
-    const gearbox = R()<.6?"auto":"manual", mileage = Math.round((2025-year)*ri(9,24))*1000;
-    const val = r100(base*Math.pow(0.9,2024-year)*(gearbox==="auto"?1.04:.96)*(1-Math.max(0,mileage-150000)/1e6));
-    const price = r100(val*(0.8+R()*0.38));
-    const eng = fuel==="electric"?"":((base>=30000?pick(["2.0","3.0"]):base>=20000?pick(["2.0","2.5"]):pick(["1.4","1.5","1.6","2.0"]))+" ");
-    add({cat:"auto",sub:0,title:`${b} ${m} ${year}, ${eng}${lbl(FUEL,fuel).toLowerCase()}, ${lbl(GEAR,gearbox).toLowerCase()}`,cur:"EUR",price,val,cond:"used",
-      attrs:{brand:b,year,mileage,fuel,gearbox,body}});
+  const PREM=["Audi","BMW","Mercedes-Benz","Lexus","Tesla"], BUDGET=["Dacia","Renault","Opel"];
+  const SUVS=/^(X3|X5|Q5|Q7|RAV4|Tiguan|Kodiaq|Duster|Tucson|Santa Fe|Sportage|Sorento|Kuga|RX|NX|Model Y|GLC)$/, HATCH=/^(Golf|Fabia|Clio|Megane|Ceed|Focus|Astra|1 Series|A-Class|Sandero|Prius)$/, VANS=/^(Touran|Zafira|Kangoo)$/, WAG=/^(Passat|Octavia|Superb|A4|A6|Insignia|Mondeo)$/;
+  const BW = ["Toyota","Toyota","Volkswagen","Volkswagen","BMW","BMW","Mercedes-Benz","Skoda","Skoda","Dacia","Dacia","Renault","Hyundai","Kia","Ford","Opel","Audi","Lexus","Tesla"];
+  for(let i=0;i<120;i++){
+    const b = pick(BW), m = pick(CAR_MODELS[b]), gens = CAR_DB[b][m], gi = Math.floor(R()*gens.length), [g, yrs] = gens[gi];
+    const y0 = Math.max(2005, +yrs.slice(0,4)), y1 = Math.min(2024, yrs.endsWith("–") ? 2024 : +yrs.slice(-4)), year = ri(y0, Math.max(y0,y1));
+    const cls = PREM.includes(b) ? "prem" : BUDGET.includes(b) ? "bud" : "mid";
+    const body = SUVS.test(m) ? "suv" : VANS.test(m) ? "van" : HATCH.test(m) ? (R()<.2?"wagon":"hatch") : WAG.test(m) ? (R()<.5?"wagon":"sedan") : "sedan";
+    const fuel = b==="Tesla" ? "electric" : (b==="Toyota"||b==="Lexus") && R()<.55 ? "hybrid" : cls==="bud" && R()<.35 ? "gas" : R()<.5 ? "diesel" : "petrol";
+    const engine = fuel==="electric" ? null : pick(cls==="prem" ? [2.0,2.0,2.5,3.0] : cls==="bud" ? [0.9,1.2,1.4,1.5,1.6] : [1.4,1.5,1.6,2.0,2.0,2.5]);
+    const power = fuel==="electric" ? pick([283,351,460]) : Math.round(engine*(fuel==="diesel"?68:76)*(.85+R()*.3)*(cls==="prem"?1.35:1));
+    const gearbox = fuel==="electric" ? "auto" : fuel==="hybrid" ? "cvt" : cls==="prem" ? (R()<.92?"auto":"manual") : pick(["manual","manual","auto","robot","cvt"]);
+    const drive = body==="suv" ? (R()<.6?"awd":"fwd") : (b==="BMW"||b==="Mercedes-Benz"||b==="Lexus") && body!=="hatch" ? (R()<.55?"rwd":"awd") : b==="Audi" ? (R()<.5?"awd":"fwd") : "fwd";
+    const mileage = Math.round((2025-year)*ri(9,24))*1000;
+    const base = (cls==="prem"?46000:cls==="bud"?17000:27000)*(body==="suv"?1.25:1);
+    const val = r100(base*Math.pow(0.89,2025-year)*(gearbox==="manual"?.95:1.03)*(1-Math.max(0,mileage-150000)/1e6));
+    const damage = R()<.88 ? "ok" : R()<.75 ? "dmg" : "parts";
+    const price = r100(val*(0.8+R()*0.38)*(damage==="ok"?1:damage==="dmg"?.7:.45));
+    const nOpts = Math.min(CAR_OPTS.length, 2 + Math.floor((year-2004)/3) + (cls==="prem"?3:0));
+    const opts = take(CAR_OPTS.map(o=>o[0]), nOpts);
+    const fuelL = lbl(FUEL,fuel).toLowerCase(), gearL = lbl(GEAR,gearbox).toLowerCase();
+    add({cat:"auto",sub:0,title:`${b} ${m} ${g}, ${year}, ${engine?engine.toFixed(1)+" ":""}${fuelL}, ${gearL}${damage!=="ok"?(damage==="dmg"?", после ДТП":", на запчасти"):""}`,cur:"EUR",price,val,cond:"used",
+      attrs:{brand:b,model:m,gen:g,year,mileage,fuel,...(engine?{engine}:{}),power,gearbox,drive,body,color:pick(COLORS)[0],wheel:R()<.97?"left":"right",damage,
+        owners:pick(["1","2","2","3"]),reg:R()<.8?"md":R()<.6?"foreign":R()<.6?"tr":"none",trade:R()<.25,credit:cls!=="bud"&&R()<.15,opts}});
   }
   const trucks=[["Mercedes-Benz","Sprinter",14000],["MAN","TGX 18.440",32000],["DAF","XF 480",35000],["Iveco","Daily",12000],["Volkswagen","Crafter",15000],["Ford","Transit",11000]];
   for(let i=0;i<12;i++){const [b,m,base]=pick(trucks),year=ri(2008,2021),mileage=(2025-year)*ri(40,110)*1000,val=r100(base*Math.pow(.9,2022-year));
@@ -65,12 +78,13 @@ function add(o){
 })();
 // --- Electronics
 (function(){
-  const phones=[["Apple","iPhone 16 Pro",23000,8],["Apple","iPhone 15 Pro",17500,8],["Apple","iPhone 15",13500,6],["Apple","iPhone 14",10500,6],["Apple","iPhone 13",8200,4],["Apple","iPhone 12",6000,4],
-   ["Samsung","Galaxy S24 Ultra",19000,12],["Samsung","Galaxy S24",12500,8],["Samsung","Galaxy S23",9200,8],["Samsung","Galaxy A55",6200,8],["Samsung","Galaxy A35",4600,6],
-   ["Xiaomi","Redmi Note 13 Pro",5200,8],["Xiaomi","Redmi Note 13",3500,6],["Xiaomi","14T",9800,12],["Google","Pixel 8",9000,8],["Google","Pixel 8 Pro",12500,12]];
-  for(let i=0;i<34;i++){const [b,m,base,ram]=pick(phones),st=pick([128,128,256,256,512]),cond=R()<.3?"new":"used";
-    const val=r100(base*(st===256?1.12:st===512?1.3:1)*(cond==="new"?1.08:.78));
-    add({cat:"elec",sub:0,title:`${b==="Apple"?"":b+" "}${m} ${st}GB${cond==="new"?", новый":""}`,price:r100(val*(.86+R()*.3)),val,cond,attrs:{brand:b,ram,storage:st}});}
+  const PH_BASE={"iPhone 12":6000,"iPhone 13":8200,"iPhone 14":10500,"iPhone 15":13500,"iPhone 15 Pro":17500,"iPhone 16 Pro":23000,"Galaxy A35":4600,"Galaxy A55":6200,"Galaxy S23":9200,"Galaxy S24":12500,"Galaxy S24 Ultra":19000,
+    "Redmi Note 13":3500,"Redmi Note 13 Pro":5200,"Xiaomi 14T":9800,"Pixel 8":9000,"Pixel 8 Pro":12500};
+  const PH_RAM={"iPhone 12":4,"iPhone 13":4,"iPhone 14":6,"iPhone 15":6,"iPhone 15 Pro":8,"iPhone 16 Pro":8,"Galaxy S24 Ultra":12,"Xiaomi 14T":12,"Pixel 8 Pro":12,"Redmi Note 13":6};
+  for(let i=0;i<40;i++){ const b=pick(Object.keys(PHONE_DB)), m=pick(PHONE_DB[b]), st=pick([128,128,256,256,512]), cond=R()<.3?"new":"used";
+    const val=r100(PH_BASE[m]*(st===256?1.12:st===512?1.3:1)*(cond==="new"?1.08:.78));
+    add({cat:"elec",sub:0,title:`${b==="Apple"||b==="Xiaomi"&&m.startsWith("Xiaomi")?"":b+" "}${m} ${st}GB${cond==="new"?", новый":""}`,price:r100(val*(.86+R()*.3)),val,cond,
+      attrs:{brand:b,model:m,ram:PH_RAM[m]||8,storage:String(st)}});}
   const laps=[["Apple","MacBook Air 13 M2",16500,8,256,"Apple M2"],["Apple","MacBook Air 15 M3",22500,8,512,"Apple M3"],["Apple","MacBook Pro 14 M3 Pro",34000,18,512,"Apple M3 Pro"],
    ["Lenovo","ThinkPad T14 Gen 3",11500,16,512,"Intel Core i5-1245U"],["Lenovo","Legion 5 RTX 4060",21000,16,1000,"AMD Ryzen 7 7840HS"],["Lenovo","IdeaPad 5",9500,16,512,"AMD Ryzen 5 7530U"],
    ["ASUS","ROG Strix G16 RTX 4070",28000,16,1000,"Intel Core i7-13650HX"],["ASUS","TUF Gaming F15 RTX 3050",13000,16,512,"Intel Core i5-11400H"],["ASUS","Zenbook 14 OLED",15500,16,512,"Intel Core Ultra 5"],
@@ -122,7 +136,9 @@ const LIST = {
  serv:[[0,"Ремонт квартир под ключ, гарантия",0],[0,"Укладка плитки, опыт 15 лет",250],[1,"Грузоперевозки, грузчики, 24/7",300],[1,"Переезды по Молдове и в Румынию",0],[2,"Репетитор по английскому, онлайн",250],[2,"Подготовка к БАК по математике",300],
   [3,"Маникюр с выездом на дом",200],[3,"Стрижка и окрашивание",400],[4,"Создание сайтов и интернет-магазинов",0],[4,"Настройка компьютеров и сетей",300],[5,"Ремонт стиральных машин на дому",350],[5,"Ремонт телефонов, замена экрана",500],[6,"Уборка квартир и офисов",600]],
  pets:[[0,"Щенки лабрадора, с документами",9000],[0,"Щенки немецкой овчарки",6500],[1,"Британские котята, привиты",2500],[1,"Мейн-кун, котёнок",6000],[2,"Волнистые попугаи",250],[3,"Аквариум 120 л с оборудованием",1700],[4,"Переноска для кошки + лежак",500],[4,"Корм Royal Canin 15 кг",1450]],
- sport:[[0,"Велосипед Trek Marlin 7, рама L",11000],[0,"Велосипед детский 20\"",1600],[0,"Электровелосипед Xiaomi",9500],[1,"Беговая дорожка Kettler",8500],[1,"Гантели разборные 2×20 кг",1300],[2,"Палатка 4-местная Coleman",2100],
+ sport:[[6,"Карповое удилище 3.6 м, 3.5 lb, комплект из 2 шт",1400],[6,"Фидерное удилище 3.9 м с тремя вершинками",900],[6,"Катушка для фидера и карпа, байтраннер",1100],
+   [6,"Эхолот беспроводной для берега и лодки",3200],[6,"Набор воблеров и блёсен, 30 шт",450],[6,"Лодка ПВХ 2.8 м + мотор 5 л.с.",9800],[6,"Спиннинг 2.4 м, тест 5–25 г",700],
+   [0,"Велосипед Trek Marlin 7, рама L",11000],[0,"Велосипед детский 20\"",1600],[0,"Электровелосипед Xiaomi",9500],[1,"Беговая дорожка Kettler",8500],[1,"Гантели разборные 2×20 кг",1300],[2,"Палатка 4-местная Coleman",2100],
   [3,"Сноуборд Burton 155 + крепления",4500],[3,"Горные лыжи Atomic 170",3800],[4,"Гитара Yamaha F310 + чехол",2400],[4,"Цифровое пианино Casio CDP-S110",6200],[5,"Книги, фантастика, 40 шт.",600]],
  agro:[[0,"Трактор МТЗ-82 1998, рабочий",9500,"EUR"],[0,"Мотоблок Нева МБ-2",14500],[0,"Плуг 3-корпусный",12000],[1,"Пшеница фуражная, тонна",3800],[1,"Вино домашнее, Изабелла, литр",30],[1,"Мёд акациевый, 3 л",450],
   [2,"Корова дойная, 4 года",22000],[2,"Цыплята бройлеры, суточные",25],[3,"Саженцы черешни и абрикоса",80],[4,"Комбикорм для кур, мешок 40 кг",420]],
@@ -140,13 +156,13 @@ ADS.forEach(a=>{ if(a.priv===undefined) a.priv=R()<.7; });
 
 /* ---- Подробные демо-объявления: оригинальные тексты, написанные для макета (не взяты с других сайтов) ---- */
 const RICH = [
- {cat:"auto",sub:0,title:"Volkswagen Golf 7 2016, 1.6 TDI, механика",price:9800,cur:"EUR",val:10600,cond:"used",reg:"chi",attrs:{brand:"Volkswagen",year:2016,mileage:198000,fuel:"diesel",gearbox:"manual",body:"hatch"},
+ {cat:"auto",sub:0,title:"Volkswagen Golf 7 2016, 1.6 TDI, механика",price:9800,cur:"EUR",val:10600,cond:"used",reg:"chi",attrs:{brand:"Volkswagen",model:"Golf",gen:"Mk7",year:2016,mileage:198000,fuel:"diesel",engine:1.6,power:110,gearbox:"manual",drive:"fwd",body:"hatch",color:"blue",wheel:"left",damage:"ok",owners:"2",reg:"md",trade:false,credit:false,opts:["ac","cruise","park","carplay","heat"]},
   desc:"Привезена из Германии в 2021 году, с тех пор я единственный владелец в Молдове. Расход по трассе около 4,5 л, по городу 5,5.\nВ прошлом месяце поменял ГРМ, помпу и все фильтры, чеки сохранены. Зимняя резина на дисках в подарок.\nКузов без ржавчины, перекрашено только заднее правое крыло после мелкой царапины. Торг у машины."},
- {cat:"auto",sub:0,title:"Toyota RAV4 2019, 2.5 гибрид, полный привод",price:27500,cur:"EUR",val:28900,cond:"used",reg:"chi",attrs:{brand:"Toyota",year:2019,mileage:86000,fuel:"hybrid",gearbox:"auto",body:"suv"},
+ {cat:"auto",sub:0,title:"Toyota RAV4 2019, 2.5 гибрид, полный привод",price:27500,cur:"EUR",val:28900,cond:"used",reg:"chi",attrs:{brand:"Toyota",model:"RAV4",gen:"XA50",year:2019,mileage:86000,fuel:"hybrid",engine:2.5,power:218,gearbox:"cvt",drive:"awd",body:"suv",color:"silver",wheel:"left",damage:"ok",owners:"1",reg:"md",trade:false,credit:true,opts:["climate","cam","heat","cruise","led","carplay","park","keyless"]},
   desc:"Официальная машина, обслуживалась только у дилера, вся история есть. Гибрид экономичный: зимой около 6,5 л на сотню.\nКомплектация с камерой заднего вида, подогревом сидений и адаптивным круиз-контролем. Не бита, не крашена — можно проверить толщиномером.\nПродаю, потому что переезжаем, нужен минивэн."},
- {cat:"auto",sub:0,title:"Dacia Logan 2018, 1.0 газ/бензин, механика",price:6300,cur:"EUR",val:6500,cond:"used",reg:"bal",attrs:{brand:"Dacia",year:2018,mileage:142000,fuel:"gas",gearbox:"manual",body:"sedan"},
+ {cat:"auto",sub:0,title:"Dacia Logan 2018, 1.2 газ/бензин, механика",price:6300,cur:"EUR",val:6500,cond:"used",reg:"bal",attrs:{brand:"Dacia",model:"Logan",gen:"II",year:2018,mileage:142000,fuel:"gas",engine:1.2,power:73,gearbox:"manual",drive:"fwd",body:"sedan",color:"white",wheel:"left",damage:"ok",owners:"2",reg:"md",trade:true,credit:false,opts:["ac"]},
   desc:"Простая и неубиваемая машина на каждый день. Газовое оборудование поставлено в сервисе, документы на ГБО в порядке.\nКондиционер работает, новый аккумулятор. Есть небольшие сколы на капоте — на фото видно.\nСмотреть в Бельцах, после 17:00."},
- {cat:"auto",sub:2,title:"Yamaha MT-07 2020, ABS",price:6400,cur:"EUR",val:6900,cond:"used",reg:"chi",attrs:{brand:"Yamaha",year:2020,mileage:14000,fuel:"petrol"},
+ {cat:"auto",sub:2,title:"Yamaha MT-07 2020, ABS",price:6400,cur:"EUR",val:6900,cond:"used",reg:"chi",attrs:{brand:"Yamaha",mtype:"naked",year:2020,mileage:14000,cc:689,power:74,color:"blue",damage:"ok",reg:"md",trade:false},
   desc:"Мотоцикл хранился в тёплом гараже, ни разу не падал. Стоят слайдеры и короткий хвост, родной хвост тоже отдам.\nМасло меняю каждые 5000 км. Отличный вариант как первый мотоцикл после категории A."},
  {cat:"real",sub:0,title:"2-комн. квартира, Ботаника, 54 м², 6/9 эт.",price:68500,cur:"EUR",val:71000,cond:"used",reg:"chi",attrs:{rooms:"2",area:54,floor:6,sector:"Ботаника",state:"euro",building:"old"},
   desc:"Светлая квартира после ремонта два года назад: новая проводка, пластиковые окна, автономное отопление.\nОстаётся встроенная кухня с техникой и шкаф-купе в спальне. Рядом парк, школа, садик и остановка троллейбуса.\nСобственник, без комиссии. Документы готовы к продаже."},
@@ -156,15 +172,15 @@ const RICH = [
   desc:"Квартира полностью меблирована: стиральная и посудомоечная машины, кондиционеры в обеих комнатах, быстрый интернет.\nСдаю на длительный срок, оплата помесячно плюс коммунальные платежи по счётчикам. Без животных, пожалуйста."},
  {cat:"real",sub:1,title:"Дом 120 м² в Дурлештах, 6 соток, гараж",price:98000,cur:"EUR",val:102000,cond:"used",reg:"chi",attrs:{area:120,land:6,state:"euro"},
   desc:"Двухэтажный дом из котельца, утеплён в 2022 году. Газ, центральная вода и канализация подключены.\nВо дворе гараж на одну машину, летняя кухня и виноградник. До центра Кишинёва 15 минут на машине."},
- {cat:"elec",sub:0,title:"iPhone 14 Pro 256GB, Deep Purple, аккумулятор 89%",price:12900,val:14200,cond:"used",reg:"chi",attrs:{brand:"Apple",ram:6,storage:256},
+ {cat:"elec",sub:0,title:"iPhone 14 Pro 256GB, Deep Purple, аккумулятор 89%",price:12900,val:14200,cond:"used",reg:"chi",attrs:{brand:"Apple",model:"iPhone 14 Pro",ram:6,storage:"256",color:"grey",warranty:false,box:true},
   desc:"Пользовался аккуратно, всё время был в чехле и с защитным стеклом — на экране ни одной царапины.\nFace ID и все камеры работают, не ремонтировался. Отдам с коробкой, кабелем и двумя чехлами.\nМогу отправить доставкой или встретиться в центре."},
- {cat:"elec",sub:0,title:"Samsung Galaxy A55 128GB, новый, на гарантии",price:5900,val:6200,cond:"new",reg:"bal",attrs:{brand:"Samsung",ram:8,storage:128},
+ {cat:"elec",sub:0,title:"Samsung Galaxy A55 128GB, новый, на гарантии",price:5900,val:6200,cond:"new",reg:"bal",attrs:{brand:"Samsung",model:"Galaxy A55",ram:8,storage:"128",color:"blue",warranty:true,box:true},
   desc:"Подарили, но у меня уже есть телефон. Коробка не вскрывалась, гарантия 12 месяцев от магазина — чек приложу.\nЦвет тёмно-синий."},
- {cat:"elec",sub:2,title:"Игровой ПК: Ryzen 5 7600 / RTX 4060 Ti / 32GB / 1TB SSD",price:16400,val:19800,cond:"used",reg:"chi",attrs:{cpu:"AMD Ryzen 5 7600",gpu:"RTX 4060 Ti",ram:32,storage:1000},
+ {cat:"elec",sub:2,title:"Игровой ПК: Ryzen 5 7600 / RTX 4060 Ti / 32GB / 1TB SSD",price:16400,val:19800,cond:"used",reg:"chi",attrs:{cpu:"AMD Ryzen 5 7600",gpu:"RTX 4060 Ti",ram:32,storage:"1000",lpurpose:"gaming",warranty:false},
   desc:"Собирал себе в прошлом году, все комплектующие с чеками. Тянет современные игры в 1440p на высоких настройках.\nБлок питания 650 W Gold, тихий корпус с тремя вентиляторами. Windows 11 активирована.\nПродаю, потому что ухожу на ноутбук. Можно проверить в играх при встрече."},
- {cat:"elec",sub:1,title:"Lenovo ThinkPad T14 Gen 3, i5 / 16GB / 512GB",price:10900,val:11500,cond:"used",reg:"chi",attrs:{brand:"Lenovo",ram:16,storage:512,cpu:"Intel Core i5-1245U"},
+ {cat:"elec",sub:1,title:"Lenovo ThinkPad T14 Gen 3, i5 / 16GB / 512GB",price:10900,val:11500,cond:"used",reg:"chi",attrs:{brand:"Lenovo",ram:16,storage:"512",lcpu:"i5",lpurpose:"office",lscreen:14,dgpu:false,box:false},
   desc:"Рабочий ноутбук, в отличном состоянии. Клавиатура с подсветкой, батарея держит около 7 часов офисной работы.\nОтлично подойдёт студенту или для удалённой работы. Зарядка в комплекте."},
- {cat:"elec",sub:4,title:"Телевизор LG OLED 55\" C2, как новый",price:16900,val:18500,cond:"used",reg:"ung",attrs:{brand:"LG",screen:55},
+ {cat:"elec",sub:4,title:"Телевизор LG OLED 55\" C2, как новый",price:16900,val:18500,cond:"used",reg:"ung",attrs:{brand:"LG",screen:55,panel:"OLED",res:"4K UHD",smart:true,box:true},
   desc:"Картинка потрясающая, выгораний нет. Пульт с указкой, коробка сохранилась.\nСамовывоз из Унген или отправлю доставкой."},
  {cat:"appl",sub:1,title:"Стиральная машина Bosch Serie 4, 8 кг, A+++",price:5400,val:5900,cond:"used",reg:"chi",attrs:{brand:"Bosch"},
   desc:"Работает тихо, без нареканий, 3 года в эксплуатации. Продаю из-за переезда в квартиру со встроенной техникой.\nПомогу погрузить, в пределах Кишинёва могу привезти за небольшую доплату."},
@@ -203,7 +219,7 @@ for (let i=0;i<80;i++){
 }
 SHOPS.forEach(([name,cat],i)=>SELLERS.push({id:100+i, name, type:"company", cat, rating: Math.round((4.5+R()*.5)*10)/10, reviews: ri(60,900), since: ri(2014,2022), verified:true, reply:"min", sold: ri(400,5000)}));
 const sellerOf = a => SELLERS.find(s=>s.id===a.seller) || {id:0,name:a.name,type:"private",rating:0,reviews:0,since:2026,verified:false,reply:"day",sold:0};
-const DELIVERABLE = {elec:[0,1,2,3,4,5,6,7,8], cloth:[0,1,2,3], kids:[1,2,4], home:[2,3,5], appl:[4,5], sport:[1,2,3,4,5], build:[1,2,3], pets:[4], misc:[0,1,2], auto:[6,7]};
+const DELIVERABLE = {elec:[0,1,2,3,4,5,6,7,8], cloth:[0,1,2,3], kids:[1,2,4], home:[2,3,5], appl:[4,5], sport:[1,2,3,4,5,6], build:[1,2,3], pets:[4], misc:[0,1,2], auto:[6,7]};
 ADS.forEach(a=>{
   if (a.priv) a.seller = 1 + Math.floor(R()*80);
   else { const shops = SELLERS.filter(s=>s.type==="company" && s.cat===a.cat); a.seller = shops.length ? pick(shops).id : 1 + Math.floor(R()*80); }
@@ -249,7 +265,7 @@ function illFor(a){
     build:[()=>["bricks"],()=>["drill",["#1f8a5b","#f5a524","#2f6fd6"][a.id%3]],()=>["tools"],()=>["tools"],()=>["house"]],
     serv:[()=>["drill","#f5a524"],()=>["van","#0f5c45"],()=>["lesson"],()=>["beauty"],()=>["laptop","#2b2b2b"],()=>["tools"],()=>["flat","#e7efe0"]],
     pets:[()=>["dog"],()=>["cat"],()=>["bird"],()=>["aquarium"],()=>["bag","#e5484d"]],
-    sport:[()=>["bike",col],()=>["dumbbell","#2d2f33"],()=>["tent",col],()=>["tent","#e5484d"],()=>["guitar"],()=>["lesson"]],
+    sport:[()=>["bike",col],()=>["dumbbell","#2d2f33"],()=>["tent",col],()=>["tent","#e5484d"],()=>["guitar"],()=>["lesson"],()=>/лодк/.test(t)?["boat","#e9ebee"]:["fishing"]],
     agro:[()=>["tractor",["#c0392b","#1f8a5b","#2f6fd6"][a.id%3]],()=>/мёд|мед/.test(t)?["honey"]:["land"],()=>["land"],()=>["land",true],()=>["bag","#a3cf7c"]],
     biz:[()=>["coffee"],()=>["building"],()=>["building"]],
     free:[()=>["box"],()=>["box"],()=>/кот/.test(t)?["cat"]:["dog"]],
@@ -257,8 +273,6 @@ function illFor(a){
   }[a.cat];
   return (m && (m[a.sub]||m[0]))();
 }
-const said = arr => arr[Math.floor(R()*arr.length)];
-const take = (arr, n) => { const c = arr.slice(), out=[]; while (out.length<n && c.length) out.push(c.splice(Math.floor(R()*c.length),1)[0]); return out; };
 const DESC_BANK = {
   open_used:["Пользовался аккуратно, всё полностью рабочее.","Состояние хорошее: есть небольшие следы использования, на работу никак не влияют.","В отличном состоянии, без ремонтов и вскрытий.","Был в использовании около года, всё исправно."],
   open_new:["Новое, в заводской упаковке, с чеком.","Новое — подарили, но не пригодилось.","Новое, с гарантией магазина."],
@@ -282,7 +296,7 @@ const DESC_BANK = {
   build:["Остаток после ремонта, хранилось в сухом месте.","Есть нужное количество, возможна доставка на объект.","Инструмент проверен, работает исправно.","При покупке оптом — скидка."],
   serv:["Работаю без выходных, выезжаю в день обращения.","Гарантия на выполненную работу.","Выезд по городу и пригородам.","Цена зависит от объёма — напишите, посчитаю бесплатно.","Опыт больше 7 лет, есть отзывы клиентов."],
   pets:["Приучены к лотку и корму.","Привиты по возрасту, есть ветпаспорт.","Отдаём только в хорошие руки.","Родители спокойного характера, можно посмотреть."],
-  sport:["Обслуживалось вовремя, всё исправно.","Подойдёт и новичку, и любителю.","Отдам вместе с аксессуарами.","Можно проверить при встрече."],
+  sport:["Обслуживалось вовремя, всё исправно.","Снасти в рабочем состоянии, ловил пару сезонов.","Подойдёт и новичку, и любителю.","Отдам вместе с аксессуарами.","Можно проверить при встрече."],
   agro:["Своё хозяйство, без лишней химии.","Есть в наличии, отгрузка сразу.","Доставка по району — договоримся.","Цена указана за единицу, оптом дешевле."],
   biz:["Оборудование рабочее, можно посмотреть в действии.","Подробности и документы — в чате.","Помогу с перевозкой и подключением."],
   free:["Отдам сегодня-завтра, самовывоз.","Просто освобождаем место — заберите, пожалуйста.","Подробности в чате."],
@@ -292,8 +306,8 @@ const DESC_BANK = {
 function descFor(a){
   const c = catOf(a.cat), lines = [];
   if (!["job","serv","free","real","agro"].includes(a.cat)) lines.push(said(a.cond==="new"?DESC_BANK.open_new:DESC_BANK.open_used));
-  const fs = fieldsFor(c,a.sub).filter((f,i,arr)=>a.attrs[f.k]!=null && arr.findIndex(g=>g.k===f.k)===i && f.k!=="brand");
-  if (fs.length >= 2) lines.push("Коротко о главном: " + fs.slice(0,4).map(f=>fmtAttr(f,a.attrs[f.k],"ru")).join(" · ") + ".");
+  const sl = specLine(a, 5);
+  if (sl.split(" · ").length >= 2) lines.push("Коротко о главном: " + sl + ".");
   const bank = a.cat==="elec" ? [...(DESC_BANK.elec_sub[a.sub]||[]), ...DESC_BANK.elec] : (DESC_BANK[a.cat]||DESC_BANK.misc);
   lines.push(...take(bank, a.cat==="serv"||a.cat==="job"?3:2));
   lines.push(said(DESC_BANK.close));

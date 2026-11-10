@@ -7,13 +7,18 @@ async function getSample(){
   return AI.sample;
 }
 function catalogForAI(){
-  return CATS.map(c=>{
+  const desc = f => f.t==="rng" ? "число"+(f.u?" ("+f.u+")":"")+", фильтр {min,max}" : f.t==="bool" ? "да/нет, фильтр true"
+    : f.by ? `зависит от ${f.dep}` : (f.t==="multi"||f.t==="color" ? "один или несколько: " : "") + fieldOpts(f).map(optV).join(" | ");
+  const cats = CATS.map(c=>{
     const fs=[]; const seen={};
-    c.fields.forEach(f=>{ const key=f.k+(f.only?"@"+f.only.join(","):"");
-      if(seen[key])return; seen[key]=1;
-      fs.push(`${f.k}${f.only?` [только подкат. ${f.only.join(",")}]`:""}: ${f.t==="rng"?"число"+(f.u?" ("+f.u+")":""):f.opts.map(optV).join(" | ")}`); });
+    c.fields.forEach(f=>{ const key=f.k+(f.only?"@"+f.only.join(","):""); if(seen[key])return; seen[key]=1;
+      fs.push(`${f.k}${f.only?` [подкат. ${f.only.join(",")}]`:""}: ${desc(f)}`); });
     return `- ${c.id} «${c.ru}»; подкатегории: ${c.subs.map((s,i)=>i+"="+s[0]).join(", ")}${fs.length?"\n    атрибуты: "+fs.join("; "):""}`;
   }).join("\n");
+  const cars = CAR_BRANDS.map(b=>`${b}: ${CAR_MODELS[b].map(m=>`${m} (${CAR_DB[b][m].map(g=>g[0]+" "+g[1]).join(", ")})`).join("; ")}`).join("\n");
+  const phones = Object.entries(PHONE_DB).map(([b,ms])=>`${b}: ${ms.join(", ")}`).join("; ");
+  const regs = REG.slice(1).map(r=>`${r[0]}=${r[1]}`).join(", ");
+  return `${cats}\n\nЛегковые авто — марка (brand) → модель (model) → поколение (gen, с годами выпуска):\n${cars}\n\nТелефоны — бренд → модель: ${phones}\n\nГорода (region): ${regs}`;
 }
 const AI_RULES = () => `Ты — ИИ-помощник доски объявлений Project (Молдова). Пользователь описывает, что хочет купить или найти. Твоя задача — найти в базе объявлений Project самые выгодные и перспективные предложения.
 
@@ -36,7 +41,7 @@ const SEARCH_TOOL = {
     min_price_mdl:{type:"number"}, max_price_mdl:{type:"number"},
     region:{type:"string",enum:REG.map(r=>r[0])},
     condition:{type:"string",enum:["new","used"]},
-    attrs:{type:"object",description:"Фильтры по атрибутам: строка для списков (например {\"gpu\":\"RTX 4060\",\"fuel\":\"diesel\"}) или {\"min\":..,\"max\":..} для чисел (например {\"year\":{\"min\":2015},\"ram\":{\"min\":32}})."},
+    attrs:{type:"object",description:"Фильтры по атрибутам из каталога. Список — строка или массив вариантов (любой из них подходит), например {\"brand\":\"BMW\",\"model\":\"3 Series\",\"fuel\":[\"diesel\",\"hybrid\"],\"drive\":\"awd\"}; число — {\"min\":..,\"max\":..}, например {\"year\":{\"min\":2015},\"engine\":{\"max\":2.0}}; да/нет — true, например {\"furniture\":true}. opts (опции авто) — массив, нужны все перечисленные."},
     sort:{type:"string",enum:["deal","cheap","exp","new","value"],description:"deal — самые выгодные относительно рынка; value — самые «мощные/дорогие по рыночной стоимости»; cheap/exp — по цене; new — свежие"},
     limit:{type:"integer",description:"по умолчанию 15, максимум 20"}}},
   execute(inp){
@@ -57,6 +62,8 @@ function localAI(text){
   const s = text.toLowerCase().replace(/(\d)[\s ](?=\d{3}\b)/g,"$1");
   const W = x => new RegExp("(?<![a-zа-яёăâîșț])(?:"+x+")");
   const rules = [
+    [W("электрик|сантехник|плиточ|ремонт квартир|отделк"),"serv",0],[W("грузоперевоз|переезд|грузчик|эвакуатор"),"serv",1],[W("репетитор|уроки|занятия по"),"serv",2],
+    [W("удочк|удилищ|рыбалк|катушк|спиннинг|фидер|воблер|эхолот"),"sport",6],
     [W("игров|gaming|пк(?![а-яё])|компьютер|системник|calculator|pc(?![a-z])"),"elec",2],[W("ноутбук|laptop|macbook|лаптоп"),"elec",1],
     [W("iphone|айфон|телефон|смартфон|telefon|samsung galaxy|pixel|redmi"),"elec",0],[W("планшет|ipad|tablet"),"elec",3],[W("телевизор|tv(?![a-z])|televizor"),"elec",4],
     [W("приставк|playstation|ps5|xbox|nintendo"),"elec",7],[W("видеокарт"),"elec",8],
@@ -67,31 +74,64 @@ function localAI(text){
     [W("работ|ваканс|job"),"job",0],[W("диван|мебел|шкаф|кроват"),"home",0]];
   let cat=null, sub=null; for (const [re,c,sb] of rules) if (re.test(s)){ cat=c; sub=sb; break; }
   let budget=null, cur="MDL";
-  const m = s.match(/(?:за|до|бюджет\w*|около|в пределах|не дороже|max|p[aâ]n[aă] la|sub|de)\s*(\d+(?:[.,]\d+)?)\s*(тыс\w*|k|к)?\s*(лей|lei|mdl|€|евро|eur|euro)?/) || s.match(/(\d{3,})\s*(тыс\w*|k)?\s*(лей|lei|mdl|€|евро|eur|euro)/);
-  if (m){ budget = parseFloat(m[1].replace(",", ".")) * (m[2]?1000:1); if (/€|евро|eur/.test(m[3]||"")) cur="EUR"; }
-  if (budget && !m[3] && (cat==="auto"||cat==="real"&&sub!==3) && budget<200000) cur="EUR";
+  const CURR = "(лей|леев|лея|lei|mdl|€|евро|eur|euro)";
+  const m = s.match(new RegExp("(?:за|до|бюджет\\w*|около|в пределах|не дороже|max|p[aâ]n[aă] la|sub|de)\\s*(\\d+(?:[.,]\\d+)?)\\s*(тыс\\w*|k|к|mii)?\\s*"+CURR+"?")) || s.match(new RegExp("(\\d{3,}|\\d+\\s*(?:тыс\\w*|k))\\s*(тыс\\w*|k)?\\s*"+CURR));
+  if (m){ budget = parseFloat(m[1].replace(",", ".")) * (m[2]||/тыс|k/.test(m[1])?1000:1); if (/€|евро|eur/.test(m[3]||"")) cur="EUR"; }
+  if (budget && !(m&&m[3]) && (cat==="auto"||cat==="real"&&sub!==3) && budget<200000) cur="EUR";
+  if (cat==="real" && sub===0 && budget && cur==="EUR" && budget<=3000) sub = 2; // «квартира до 500 евро» — это аренда
   const attrs={};
-  if (/автомат|automat/.test(s)) attrs.gearbox="auto";
-  if (/дизел|motorin/.test(s)) attrs.fuel="diesel";
-  const rm = s.match(/(\d)\s*-?\s*(комн|кімн|camer)/); if (rm && cat==="real") attrs.rooms = rm[1]>3?"4":rm[1];
+  if (/автомат|automat/.test(s)) attrs.gearbox=["auto","robot","cvt"];
+  if (/механик|manual/.test(s)) attrs.gearbox="manual";
+  const fuels = [["diesel",/дизел|motorin/],["petrol",/бензин(?!\/)|benzin/],["hybrid",/гибрид|hibrid/],["electric",/электромоб|электро(?!вел)|electric/],["gas",/газ\b|газ\/|metan|propan/]].filter(([,re])=>re.test(s)).map(x=>x[0]);
+  if (fuels.length && cat==="auto") attrs.fuel = fuels;
+  if (/полн\w* привод|4x4|4х4|awd|quattro|xdrive|4matic/.test(s)) attrs.drive="awd";
+  const ROOMW = [["1",/(?<![а-я])(1|одн[оау]\w*|однушк\w*)[\s-]*(комн|кімн|camer)|однушк/],["2",/(?<![а-я])(2|дв[уе]\w*|двушк\w*)[\s-]*(комн|кімн|camer)|двушк|две комнаты/],["3",/(?<![а-я])(3|тр[её]х\w*|три)[\s-]*(комн|camer)|трёшк|трешк/],["0",/студи|garsonier/]];
+  if (cat==="real"){ const rr = ROOMW.filter(([,re])=>re.test(s)).map(x=>x[0]); if (rr.length) attrs.rooms = rr; }
   for (const sec of ["Центр","Ботаника","Рышкановка","Чеканы","Буюканы","Телецентр","Скулянка"]) if (s.includes(sec.toLowerCase().slice(0,5))) attrs.sector=sec;
-  const brand = ["apple","iphone","samsung","xiaomi","lenovo","asus","acer","dell","hp","toyota","bmw","volkswagen","skoda","dacia","mercedes"].find(b=>new RegExp("\\b"+b).test(s));
-  let q = brand==="iphone"?"iphone":"";
-  if (brand && brand!=="iphone" && cat){ const bf = catOf(cat).fields.find(f=>f.k==="brand" && (!f.only||f.only.includes(sub))); if (bf){ const o=bf.opts.find(o=>optV(o).toLowerCase().startsWith(brand)); if(o) attrs.brand=optV(o);} }
+  const CITY = [["chi",/кишин|chisin|chișin/],["bal",/бельц|balti|bălți/],["cah",/кагул|cahul/],["com",/комрат|comrat/],["ung",/унген|ungheni/],["orh",/орхе|orhei/],["sor",/сорок|soroca/],["edi",/единц|edineț|edinet/],["hin",/хынчешт|hîncești|hincesti/],["str",/страшен|strășeni|straseni/],["tir",/тирасп|tiraspol/]];
+  const city = (CITY.find(([,re])=>re.test(s))||[])[0] || null;
+  const RUMODEL = {"камри":"Camry","королл":"Corolla","рав4":"RAV4","гольф":"Golf","пассат":"Passat","туран":"Touran","тигуан":"Tiguan","октави":"Octavia","суперб":"Superb","логан":"Logan","дастер":"Duster","сандеро":"Sandero","меган":"Megane","туссан":"Tucson","спортейдж":"Sportage","фокус":"Focus","астр":"Astra","приус":"Prius","икс5":"X5","х5":"X5","икс3":"X3","х3":"X3","тройк":"3 Series","пятёрк":"5 Series","пятерк":"5 Series"};
+  const brand = ["apple","iphone","samsung","xiaomi","google","lenovo","asus","acer","dell","hp","audi","bmw","mercedes","toyota","volkswagen","vw","skoda","dacia","renault","hyundai","kia","ford","opel","lexus","tesla","бмв","мерседес","тойот","фольксваген","шкод","дачи","ауди"].find(b=>new RegExp("(?<![a-zа-я])"+b).test(s));
+  const BR_RU = {"бмв":"bmw","мерседес":"mercedes","тойот":"toyota","фольксваген":"volkswagen","vw":"volkswagen","шкод":"skoda","дачи":"dacia","ауди":"audi"};
+  let q = "";
+  if (brand==="iphone"){ cat=cat||"elec"; sub=sub??0; attrs.brand="Apple"; }
+  if (brand && brand!=="iphone"){
+    const bkey = BR_RU[brand] || brand;
+    if (!cat && CAR_BRANDS.some(b=>b.toLowerCase().startsWith(bkey))){ cat="auto"; sub=0; }
+    if (cat){ const bf = catOf(cat).fields.find(f=>f.k==="brand" && (!f.only||f.only.includes(sub)));
+      const o = bf && fieldOpts(bf).find(o=>String(optV(o)).toLowerCase().startsWith(bkey)); if (o) attrs.brand=optV(o); }
+  }
+  if (cat==="auto" && sub===0){
+    const models = attrs.brand ? CAR_MODELS[attrs.brand] : Object.values(CAR_MODELS).flat();
+    let mm = models.find(m=>new RegExp("(?<![a-z0-9])"+m.toLowerCase().replace(/[-\s]/g,"[-\\s]?")+"(?![a-z0-9])").test(s));
+    if (!mm){ const k = Object.keys(RUMODEL).find(k=>s.includes(k)); if (k && models.includes(RUMODEL[k])) mm = RUMODEL[k]; }
+    const ser = s.match(/(?<![a-z0-9])([1-7])\s*(?:series|серии|серия|er)/); if (!mm && ser && attrs.brand==="BMW" && models.includes(ser[1]+" Series")) mm = ser[1]+" Series";
+    if (mm){ attrs.model = mm; if (!attrs.brand) attrs.brand = CAR_BRANDS.find(b=>CAR_MODELS[b].includes(mm));
+      const g = CAR_DB[attrs.brand][mm].find(([gg])=>new RegExp("(?<![a-z0-9])"+gg.toLowerCase()+"(?![a-z0-9])").test(s)); if (g) attrs.gen = g[0]; }
+  }
+  if (cat==="elec" && sub===0 && attrs.brand && PHONE_DB[attrs.brand]){ const pm = PHONE_DB[attrs.brand].slice().sort((a,b)=>b.length-a.length).find(m=>s.includes(m.toLowerCase())); if (pm) attrs.model = pm; }
+  if (cat==="serv"){ const SV = [["stype","elec",/электрик|electrician|electrician/],["stype","plumb",/сантехник/],["stype","tile",/плиточ|плитк/],["stype","turnkey",/под ключ/],["ttype","move",/переезд|грузчик/],["ttype","evac",/эвакуатор/],["subject","en",/англ/],["subject","ro",/румын/],["subject","math",/матем/]];
+    SV.filter(([,,re])=>re.test(s)).forEach(([k,v])=>attrs[k]=v); }
+  if (cat==="sport" && sub===6){ if (/карп/.test(s)) attrs.fstyle="carp"; if (/удочк|удилищ/.test(s)) attrs.fish="rod"; }
   const maxMDL = budget ? budget*(cur==="EUR"?RATE:1)*1.05 : null;
-  let r = query({cat,sub,q,max:maxMDL??"",cur:"MDL",attrs,sort:"new"}).filter(a=>a.price>0);
+  let r = query({cat,sub,q,reg:city||"all",max:maxMDL??"",cur:"MDL",attrs,sort:"new"}).filter(a=>a.price>0 || cat==="serv");
   const score = a => { const ratio = a.val? a.val/a.price : 1; const power = a.val? Math.log(a.val+10) : 0;
     return (maxMDL? power*1.0 : 0) + ratio*3 + (a.cond==="new"?0.15:0) - ((Date.now()-a.t)/864e5)*0.01; };
   r.sort((a,b)=>score(b)-score(a));
   const best = r.slice(0,3);
   const ru = S.lang==="ru";
-  if (!best.length) return {text: ru? "Не нашёл подходящих объявлений. Попробуйте увеличить бюджет или убрать часть условий." : "Nu am găsit anunțuri potrivite. Încearcă un buget mai mare sau mai puține condiții.", ids:[], q:{cat,sub,attrs,max:maxMDL}};
+  const cc = catOf(cat), ufs = cc ? uniqFields(cc, sub) : [];
+  const und = [cc ? cc[S.lang] + (sub!=null ? " › " + subName(cc,sub) : "") : null,
+    ...Object.entries(attrs).map(([k,v])=>{ const f = ufs.find(x=>x.k===k); return f ? (f.t==="bool" ? f[S.lang] : fmtAttr(f,v)) : null; }),
+    budget ? (ru?"до ":"până la ")+fmtN(budget)+" "+(cur==="EUR"?"€":(ru?"лей":"lei")) : null, city ? regName(city) : null].filter(Boolean);
+  const got = und.length ? (ru?"Понял так: ":"Am înțeles: ") + und.join(" · ") + ".\n" : "";
+  if (!best.length) return {text: got + (ru? "Подходящих объявлений сейчас нет — ничего выдумывать не буду. Попробуйте увеличить бюджет, убрать часть условий или сохраните поиск, чтобы узнать о новых объявлениях." : "Momentan nu sunt anunțuri potrivite — nu voi inventa nimic. Încearcă un buget mai mare, mai puține condiții sau salvează căutarea."), ids:[], q:{cat,sub,attrs,max:maxMDL}};
   const why = a => { const parts=[]; if (a.val && a.price<a.val*.93) parts.push(ru?`дешевле рынка ~на ${Math.round((1-a.price/a.val)*100)}%`:`cu ~${Math.round((1-a.price/a.val)*100)}% sub piață`);
     const sp=specLine(a); if(sp) parts.push(sp); parts.push(a.cond==="new"?(ru?"новое":"nou"):(ru?"б/у":"folosit")); return parts.join(", "); };
   const head = ru ? `Нашёл ${r.length} подходящих объявлений${budget?` в бюджете до ${fmtN(budget)} ${cur==="EUR"?"€":"лей"}`:""}. Лучшие по соотношению цена/качество:` :
                     `Am găsit ${r.length} anunțuri potrivite${budget?` cu buget până la ${fmtN(budget)} ${cur==="EUR"?"€":"lei"}`:""}. Cele mai bune după raportul preț/calitate:`;
   const lines = best.map((a,i)=>`${i+1}. **${a.title}** — ${fmtN(a.price)} ${curS(a.cur)}: ${why(a)}.`);
-  return {text: head+"\n"+lines.join("\n"), ids: best.map(a=>a.id), q:{cat,sub,attrs,max:maxMDL}};
+  return {text: got+head+"\n"+lines.join("\n"), ids: best.map(a=>a.id), q:{cat,sub,attrs,max:maxMDL}};
 }
 
 function mdLite(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/^#+\s*/gm,""); }

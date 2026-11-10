@@ -8,8 +8,70 @@ const store = {
   get(k, d){ try { const v = localStorage.getItem("gata_"+k); return v==null ? d : JSON.parse(v); } catch(e){ return d; } },
   set(k, v){ try { localStorage.setItem("gata_"+k, JSON.stringify(v)); return true; } catch(e){ return false; } }
 };
+/* ---------- характеристики демо-объявлений: из заголовка, остальное — правдоподобно ---------- */
+const HINTS = {
+  ctype:[["outer",/пухов|куртк|пальто/],["dress",/плать|юбк/],["suit",/костюм/],["jeans",/джинс|брюк/],["top",/футбол|рубаш/],
+         ["office",/офис/],["retail",/торгов/],["storage",/склад/],["food",/кафе/]],
+  shtype:[["sneak",/кроссов|кед/],["boots",/ботин|сапог/],["shoes",/туфл/]],
+  gender:[["w",/женск|сапоги зимние кожаные|сумка/],["m",/мужск|timberland/]],
+  ftype:[["sofa",/диван|кресл/],["bed",/кроват|матрас/],["wardrobe",/шкаф|комод/],["table",/стол|стул/],["shelf",/стеллаж|полк/]],
+  mtype:[["blocks",/газоблок|кирпич/],["roof",/черепиц|кровл/],["floor",/ламинат|плитк/],["scooter",/скутер|aerox/],["naked",/mt-0|cb500/],["sport",/ninja/],["touring",/gs|v-strom/]],
+  ptype:[["light",/фар/],["brake",/колодк|тормоз/],["engine",/двигател/],["gear",/коробк|dsg/],["elec",/аккумул/]],
+  ttype:[["tires",/шин/],["rims",/диск/],["move",/переезд/],["cargo",/груз/]],
+  season:[["winter",/зимн|пухов|сапог/],["summer",/летн/]],
+  stype:[["elec",/электри/],["plumb",/сантех/],["tile",/плитк/],["turnkey",/под ключ/],["2in1",/2в1|2 в 1/],["walk",/прогулоч/]],
+  subject:[["en",/англ/],["ro",/румын/],["math",/матем|бак/]],
+  breed:[["lab",/лабрадор/],["shep",/овчарк/],["brit",/британ/],["scot",/шотланд|вислоух/],["maine",/мейн/]],
+  itype:[["guitar",/гитар/],["piano",/пианино|синтез/]],
+  btype:[["ebike",/электро/],["kids",/детск/],["mtb",/горн|marlin|29/]],
+  atype:[["tractor",/трактор|мтз/],["motoblock",/мотоблок/],["tool",/плуг/]],
+  crop:[["grain",/пшениц|зерн/],["wine",/вино/],["honey",/мёд|мед/]],
+  animal:[["cow",/коров/],["poultry",/цыпл|кур|бройл/]],
+  platform:[["PlayStation",/playstation|ps\d/],["Xbox",/xbox/],["Nintendo",/switch|nintendo/],["Steam Deck",/steam deck/]],
+  part:[["gpu",/видеокарт/],["mon",/монитор/],["ssd",/ssd/],["ram",/памят/],["psu",/блок питан/]],
+  vtype:[["robot",/робот/]], stove:[["gas",/газов/],["oven",/духов/]],
+  fish:[["rod",/удилищ|спиннинг/],["reel",/катушк/],["echo",/эхолот/],["lure",/воблер|блёсен|блесен/],["boat",/лодк/]],
+  fstyle:[["carp",/карп/],["feeder",/фидер/],["spin",/спиннинг|воблер/]],
+  panel:[["OLED",/oled/],["QLED",/qled/],["NanoCell",/nanocell/]],
+  lpurpose:[["gaming",/rtx|gtx|игров|legion|rog|nitro|victus|tuf/],["ultra",/macbook air|zenbook|xps/],["pro",/macbook pro/]],
+  lcpu:[["m3",/m3/],["m2",/m2/],["ultra",/ultra/],["i7",/i7/],["i5",/i5/],["i3",/i3/],["r7",/ryzen 7/],["r5",/ryzen 5/]]
+};
+function enrich(a){
+  const c = catOf(a.cat); if (!c) return;
+  const t = a.title.toLowerCase(), seen = new Set();
+  for (const f of fieldsFor(c, a.sub)){
+    if (seen.has(f.k)) continue; seen.add(f.k);
+    if (a.attrs[f.k] != null) continue;
+    if (f.k==="owner"){ a.attrs.owner = !!a.priv; continue; }
+    if (f.t==="bool"){ a.attrs[f.k] = R() < (f.p ?? .5); continue; }
+    if (f.t==="rng"){
+      const at=a.attrs;
+      if (f.gen) at[f.k] = f.step ? Math.round((f.gen[0]+R()*(f.gen[1]-f.gen[0]))*10)/10 : ri(f.gen[0], f.gen[1]);
+      else if (f.k==="floors") at.floors = a.sub===1 ? ri(1,2) : Math.max(at.floor||1, pick([5,9,9,10,12,16]));
+      else if (f.k==="floor") at.floor = ri(1,9);
+      else if (f.k==="lscreen") at.lscreen = +(t.match(/\b(1[0-7](?:\.\d)?)["″]?/)?.[1] || (a.sub===3?11:15.6));
+      else if (f.k==="ram") at.ram = a.sub===2 ? 16 : 8;
+      else if (f.k==="power" && a.sub===2) at.power = Math.round((at.cc||500)/7);
+      else if (f.k==="area") at.area = ri(30,120);
+      continue;
+    }
+    const opts = fieldOpts(f, a.attrs); if (!opts.length) continue;
+    const hint = (HINTS[f.k]||[]).find(([v,re]) => re.test(t) && opts.some(o=>optV(o)==v));
+    if (hint){ a.attrs[f.k] = hint[0]; continue; }
+    const byLabel = opts.find(o => { const L = (Array.isArray(o)?o[1]:o).toLowerCase(); return L.length>2 && t.includes(L); });
+    if (byLabel){ a.attrs[f.k] = optV(byLabel); continue; }
+    a.attrs[f.k] = f.k==="opts" ? take(opts.map(optV), ri(2,6)) : optV(pick(opts));
+  }
+  // согласованность
+  const at = a.attrs;
+  if (at.floor!=null && at.floors!=null){ if (at.floor>at.floors) at.floors = at.floor; at.notfirst = at.floor>1; at.notlast = at.floor<at.floors; }
+  if (at.storage!=null) at.storage = String(at.storage);
+  if (a.cat==="elec" && a.sub===1 && at.dgpu==null) at.dgpu = /rtx|gtx/.test(t);
+  if (a.cat==="elec" && a.sub===2 && !at.lpurpose) at.lpurpose = GPU.indexOf(at.gpu)>=2 ? "gaming" : "office";
+}
+
 /* ---------- картинки и описания демо-объявлений (до загрузки своих объявлений) ---------- */
-ADS.forEach(a=>{ const ill = a.ill || illFor(a);
+ADS.forEach(a=>{ enrich(a); const ill = a.ill || illFor(a);
   if (ill){ a.imgs = illCached(ill.join("|"), ...ill); a.photos = a.imgs.length; }
   if (!a.rich) a.desc = descFor(a); });
 let VIEWED = store.get("viewed", []);         // id объявлений
@@ -42,7 +104,7 @@ Object.assign(T.ru, {
   raise:"Поднять", remove:"Снять", open:"Открыть", del:"Удалить", raised:"Объявление поднято в начало списка", removed:"Объявление снято с публикации", viewsN:"просмотров",
   saveSearch:"Сохранить поиск", searchSaved:"Поиск сохранён — новые объявления будут в кабинете", nowFound:"сейчас найдено", newN:"новых",
   promo_t:"Продвижение", promoOpts:[["none","Обычное","Бесплатно"],["hl","Выделить цветом","29 лей · 7 дней"],["top","В ТОП","59 лей · 3 дня"],["turbo","Турбо: ТОП + выделение","99 лей · до 10× просмотров"]], promoNote:"Демо: оплата продвижения подключается позже.",
-  pDelivery:"Готов отправить доставкой (Project Доставка)",
+  pDelivery:"Готов отправить доставкой (Project Доставка)", pickFirst:"Сначала выберите", extra:"Дополнительно",
   viewedT:"Вы недавно смотрели", recoT:"Рекомендации для вас", mapT:"Объявления на карте", mapHint:"Нажмите на город, чтобы показать его объявления", map:"Карта"
 });
 Object.assign(T.ro, {
@@ -64,7 +126,7 @@ Object.assign(T.ro, {
   raise:"Ridică", remove:"Retrage", open:"Deschide", del:"Șterge", raised:"Anunțul a fost ridicat în top", removed:"Anunțul a fost retras", viewsN:"vizualizări",
   saveSearch:"Salvează căutarea", searchSaved:"Căutare salvată — anunțurile noi vor fi în cabinet", nowFound:"găsite acum", newN:"noi",
   promo_t:"Promovare", promoOpts:[["none","Obișnuit","Gratuit"],["hl","Evidențiere color","29 lei · 7 zile"],["top","În TOP","59 lei · 3 zile"],["turbo","Turbo: TOP + evidențiere","99 lei · până la 10× vizualizări"]], promoNote:"Demo: plata promovării se conectează mai târziu.",
-  pDelivery:"Pot trimite prin livrare (Project Livrare)",
+  pDelivery:"Pot trimite prin livrare (Project Livrare)", pickFirst:"Mai întâi alegeți", extra:"Suplimentar",
   viewedT:"Ai văzut recent", recoT:"Recomandări pentru tine", mapT:"Anunțuri pe hartă", mapHint:"Apasă pe un oraș pentru a vedea anunțurile lui", map:"Hartă"
 });
 
@@ -124,7 +186,10 @@ function openAd(id){
   const a = ADS.find(x=>x.id===id); if(!a) return; a.views++;
   VIEWED = [id, ...VIEWED.filter(x=>x!==id)].slice(0,30); store.set("viewed", VIEWED);
   const c = catOf(a.cat), s = sellerOf(a);
-  const attrs = fieldsFor(c,a.sub).filter((f,i,arr)=>a.attrs[f.k]!=null && arr.findIndex(g=>g.k===f.k)===i).map(f=>`<dt>${f[S.lang]}</dt><dd>${esc(fmtAttr(f,a.attrs[f.k]))}</dd>`).join("");
+  const ufs = uniqFields(c,a.sub);
+  const attrs = ufs.filter(f=>hasVal(a.attrs[f.k]) && f.k!=="opts" && f.t!=="bool").map(f=>`<dt>${f[S.lang]}</dt><dd>${esc(fmtAttr(f,a.attrs[f.k]))}</dd>`).join("")
+    + (ufs.some(f=>f.t==="bool"&&a.attrs[f.k]===true) ? `<dt>${t("extra")}</dt><dd>${ufs.filter(f=>f.t==="bool"&&a.attrs[f.k]===true).map(f=>esc(f[S.lang])).join(" · ")}</dd>` : "");
+  const optF = ufs.find(f=>f.k==="opts"), optList = optF && Array.isArray(a.attrs.opts) && a.attrs.opts.length ? `<div class="optlist">${a.attrs.opts.map(o=>`<span><i data-lucide="check"></i>${esc(lbl(optF.opts,o))}</span>`).join("")}</div>` : "";
   document.title = a.title + " — Project";
   const sim = similarTo(a), other = ADS.filter(x=>x.seller===a.seller && x.id!==a.id).slice(0,8);
   openModal(`<div class="det">
@@ -142,7 +207,7 @@ function openAd(id){
         <dt>${t("location")}</dt><dd>${regName(a.reg)}</dd>
         <dt>${t("posted")}</dt><dd>${fmtDate(a.t)} · ${a.views} ${t("views")}</dd>
         <dt>${t("id")}</dt><dd>${100000+a.id}</dd>
-      </dl>
+      </dl>${optList}
       <button class="seller sbtn" data-seller="${s.id}"><span class="ava">${esc(s.name[0])}</span><span style="min-width:0;text-align:left">
         <b>${esc(s.name)}</b>${s.verified?` <span class="vf" title="${t("verified")}"><i data-lucide="badge-check"></i></span>`:""}
         <span class="srow">${s.reviews?`${stars(s.rating)} <b>${s.rating.toFixed(1)}</b> · ${s.reviews} ${t("reviewsN")}`:t("noReviews")}</span>

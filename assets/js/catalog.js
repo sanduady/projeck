@@ -5,77 +5,238 @@ const REG = [
  ["com","Комрат","Comrat"],["ung","Унгены","Ungheni"],["orh","Орхей","Orhei"],["sor","Сороки","Soroca"],
  ["edi","Единцы","Edineț"],["hin","Хынчешты","Hîncești"],["str","Страшены","Strășeni"],["tir","Тирасполь","Tiraspol"]
 ];
-// field: k, ru, ro, t: sel|rng, opts: [value] or [value, ru, ro], only: [sub indexes], u: unit
-/* подпись значения атрибута на нужном языке */
-function lbl(opts,v,lang="ru"){ const o = opts.find(o=>(Array.isArray(o)?o[0]:o)==v); return o==null? String(v) : Array.isArray(o)? o[lang==="ru"?1:2] : o; }
+/* Поле фильтра:
+   k — ключ; ru/ro — подпись; t — тип: sel (список), multi (несколько вариантов), rng (диапазон), bool (да/нет), color (цвета);
+   opts — варианты: "значение" или [значение, ru, ro]; only — номера подкатегорий; u — единица; g — группа;
+   dep + by — зависимый список (например, модель зависит от марки); gen/p — подсказки для генерации демо-данных. */
+function lbl(opts,v,lang="ru"){ const o = (opts||[]).find(o=>(Array.isArray(o)?o[0]:o)==v); return o==null? String(v) : Array.isArray(o)? o[lang==="ru"?1:2] : o; }
 const optV = o => Array.isArray(o)?o[0]:o;
+const GROUPS = {main:["Основное","Principal"], tech:["Двигатель и трансмиссия","Motor și transmisie"], specs:["Характеристики","Caracteristici"],
+  state:["Состояние и документы","Stare și acte"], house:["Дом и удобства","Casă și facilități"], opts:["Опции и комплектация","Opțiuni și dotări"], terms:["Условия","Condiții"]};
+const YN = (k,ru,ro,g,only,p=.5) => ({k,ru,ro,t:"bool",g,only,p});
+
+/* ---- автомобили: марка → модель → поколение (годы выпуска) ---- */
+const CAR_DB = {
+ "Audi":{"A4":[["B8","2007–2015"],["B9","2015–"]],"A6":[["C6","2004–2011"],["C7","2011–2018"],["C8","2018–"]],"Q5":[["8R","2008–2017"],["FY","2017–"]],"Q7":[["4L","2005–2015"],["4M","2015–"]]},
+ "BMW":{"1 Series":[["F20","2011–2019"],["F40","2019–"]],"3 Series":[["E90","2005–2011"],["F30","2012–2019"],["G20","2019–"]],"5 Series":[["E60","2003–2010"],["F10","2010–2016"],["G30","2017–2023"]],
+   "X3":[["F25","2010–2017"],["G01","2017–"]],"X5":[["E70","2006–2013"],["F15","2013–2018"],["G05","2018–"]]},
+ "Mercedes-Benz":{"A-Class":[["W176","2012–2018"],["W177","2018–"]],"C-Class":[["W204","2007–2014"],["W205","2014–2021"],["W206","2021–"]],"E-Class":[["W211","2002–2009"],["W212","2009–2016"],["W213","2016–2023"]],"GLC":[["X253","2015–2022"],["X254","2022–"]]},
+ "Toyota":{"Camry":[["XV40","2006–2011"],["XV50","2011–2017"],["XV70","2017–"]],"Corolla":[["E150","2006–2013"],["E170","2013–2019"],["E210","2019–"]],"RAV4":[["XA30","2005–2012"],["XA40","2012–2018"],["XA50","2018–"]],"Prius":[["XW30","2009–2015"],["XW50","2015–2022"]]},
+ "Volkswagen":{"Golf":[["Mk6","2008–2012"],["Mk7","2012–2019"],["Mk8","2019–"]],"Passat":[["B6","2005–2010"],["B7","2010–2014"],["B8","2014–2023"]],"Touran":[["1T","2003–2015"],["5T","2015–"]],"Tiguan":[["I","2007–2016"],["II","2016–"]]},
+ "Skoda":{"Octavia":[["A5","2004–2013"],["A7","2013–2020"],["A8","2020–"]],"Superb":[["B6","2008–2015"],["B8","2015–2023"]],"Fabia":[["II","2007–2014"],["III","2014–2021"]],"Kodiaq":[["I","2016–"]]},
+ "Dacia":{"Logan":[["I","2004–2012"],["II","2012–2020"],["III","2020–"]],"Duster":[["I","2010–2017"],["II","2017–2023"]],"Sandero":[["II","2012–2020"],["III","2020–"]]},
+ "Renault":{"Megane":[["III","2008–2016"],["IV","2016–"]],"Clio":[["IV","2012–2019"],["V","2019–"]],"Kangoo":[["II","2008–2021"]]},
+ "Hyundai":{"Tucson":[["TL","2015–2020"],["NX4","2020–"]],"Elantra":[["MD","2010–2015"],["AD","2015–2020"]],"Santa Fe":[["DM","2012–2018"],["TM","2018–"]]},
+ "Kia":{"Sportage":[["SL","2010–2015"],["QL","2015–2021"],["NQ5","2021–"]],"Ceed":[["JD","2012–2018"],["CD","2018–"]],"Sorento":[["UM","2014–2020"]]},
+ "Ford":{"Focus":[["II","2004–2011"],["III","2011–2018"],["IV","2018–"]],"Mondeo":[["IV","2007–2014"],["V","2014–2022"]],"Kuga":[["II","2012–2019"],["III","2019–"]]},
+ "Opel":{"Astra":[["H","2004–2014"],["J","2009–2015"],["K","2015–2021"]],"Insignia":[["A","2008–2017"],["B","2017–"]],"Zafira":[["B","2005–2014"],["C","2011–2019"]]},
+ "Lexus":{"RX":[["AL10","2008–2015"],["AL20","2015–2022"]],"NX":[["AZ10","2014–2021"]],"ES":[["XV60","2012–2018"]]},
+ "Tesla":{"Model 3":[["I","2017–"]],"Model Y":[["I","2020–"]]}
+};
+const CAR_BRANDS = Object.keys(CAR_DB);
+const CAR_MODELS = Object.fromEntries(CAR_BRANDS.map(b=>[b,Object.keys(CAR_DB[b])]));
+const CAR_GENS = {}; CAR_BRANDS.forEach(b=>Object.entries(CAR_DB[b]).forEach(([m,gs])=>CAR_GENS[m]=gs.map(([g,y])=>[g,`${g} (${y})`,`${g} (${y})`])));
+
 const FUEL=[["petrol","Бензин","Benzină"],["diesel","Дизель","Motorină"],["gas","Газ/бензин","Gaz/benzină"],["hybrid","Гибрид","Hibrid"],["electric","Электро","Electric"]];
-const GEAR=[["auto","Автомат","Automată"],["manual","Механика","Manuală"]];
-const BODY=[["sedan","Седан","Sedan"],["wagon","Универсал","Universal"],["hatch","Хэтчбек","Hatchback"],["suv","Внедорожник","SUV"],["van","Минивэн","Monovolum"]];
-const RSTATE=[["euro","Евроремонт","Euroreparație"],["white","Белый вариант","Variantă albă"],["grey","Серый вариант","Variantă sură"],["needs","Требует ремонта","Necesită reparație"]];
+const GEAR=[["manual","Механика","Manuală"],["auto","Автомат","Automată"],["robot","Робот","Robotizată"],["cvt","Вариатор","Variator"]];
+const DRIVE=[["fwd","Передний","Față"],["rwd","Задний","Spate"],["awd","Полный","Integrală"]];
+const BODY=[["sedan","Седан","Sedan"],["wagon","Универсал","Universal"],["hatch","Хэтчбек","Hatchback"],["suv","Внедорожник / кроссовер","SUV / crossover"],["van","Минивэн","Monovolum"],["coupe","Купе","Coupé"],["cabrio","Кабриолет","Cabriolet"],["pickup","Пикап","Pickup"]];
+const COLORS=[["white","Белый","Alb","#ffffff"],["black","Чёрный","Negru","#1f2326"],["silver","Серебристый","Argintiu","#c0c4c9"],["grey","Серый","Gri","#7b848c"],["blue","Синий","Albastru","#2f6fd6"],["red","Красный","Roșu","#c0392b"],["green","Зелёный","Verde","#1f8a5b"],["beige","Бежевый","Bej","#e3d2b4"],["brown","Коричневый","Maro","#7a4e2d"],["yellow","Жёлтый","Galben","#f2c94c"]];
+const CAR_OPTS=[["ac","Кондиционер","Aer condiționat"],["climate","Климат-контроль","Climatronic"],["nav","Навигация","Navigație"],["cam","Камера заднего вида","Cameră marșarier"],["park","Парктроники","Senzori parcare"],["leather","Кожаный салон","Salon din piele"],["heat","Подогрев сидений","Încălzire scaune"],["cruise","Круиз-контроль","Cruise control"],["roof","Люк / панорама","Trapă / panoramă"],["led","LED-фары","Faruri LED"],["carplay","CarPlay / Android Auto","CarPlay / Android Auto"],["keyless","Бесключевой доступ","Acces fără cheie"]];
+const RSTATE=[["euro","Евроремонт","Euroreparație"],["design","Дизайнерский ремонт","Design individual"],["cosm","Косметический","Cosmetică"],["white","Белый вариант","Variantă albă"],["grey","Серый вариант","Variantă sură"],["needs","Требует ремонта","Necesită reparație"]];
 const BUILD=[["new","Новострой","Bloc nou"],["old","Вторичка","Secundar"]];
+const WALLS=[["brick","Кирпич","Cărămidă"],["kotelets","Котелец","Cotileț"],["panel","Панель","Panou"],["monolith","Монолит","Monolit"],["block","Блоки","Blocuri"]];
+const SECTORS=[["Центр","Центр","Centru"],["Ботаника","Ботаника","Botanica"],["Рышкановка","Рышкановка","Râșcani"],["Чеканы","Чеканы","Ciocana"],["Буюканы","Буюканы","Buiucani"],["Телецентр","Телецентр","Telecentru"],["Скулянка","Скулянка","Sculeni"],["Пригород","Пригород","Suburbie"]];
 const CPU=["Intel Core i3-12100F","AMD Ryzen 5 5600","Intel Core i5-12400F","AMD Ryzen 5 7600","Intel Core i5-13600K","AMD Ryzen 7 5800X3D","Intel Core i7-13700K","AMD Ryzen 7 7800X3D","Intel Core i9-13900K"];
 const GPU=["GTX 1660 Super","RX 6600","RTX 3060","RX 7600","RTX 4060","RTX 3070","RTX 4060 Ti","RX 7800 XT","RTX 4070","RTX 4070 Super","RTX 4080 Super"];
+const PHONE_DB = {"Apple":["iPhone 12","iPhone 13","iPhone 14","iPhone 14 Pro","iPhone 15","iPhone 15 Pro","iPhone 16 Pro"],"Samsung":["Galaxy A35","Galaxy A55","Galaxy S23","Galaxy S24","Galaxy S24 Ultra"],"Xiaomi":["Redmi Note 13","Redmi Note 13 Pro","Xiaomi 14T"],"Google":["Pixel 8","Pixel 8 Pro"]};
+const LAPTOP_CPU=[["i3","Intel Core i3","Intel Core i3"],["i5","Intel Core i5","Intel Core i5"],["i7","Intel Core i7","Intel Core i7"],["ultra","Intel Core Ultra","Intel Core Ultra"],["r5","AMD Ryzen 5","AMD Ryzen 5"],["r7","AMD Ryzen 7","AMD Ryzen 7"],["m2","Apple M2","Apple M2"],["m3","Apple M3 / M3 Pro","Apple M3 / M3 Pro"]];
+const SIZES=["XS","S","M","L","XL","XXL"];
+const CLOTH_BRANDS=["Nike","Adidas","Zara","H&M","Mango","The North Face","Levi's","Puma","Timberland","Другой"];
+const DOG_BREEDS=[["lab","Лабрадор","Labrador"],["shep","Немецкая овчарка","Ciobănesc german"],["husky","Хаски","Husky"],["dachs","Такса","Teckel"],["spitz","Шпиц","Spitz"],["york","Йоркширский терьер","Yorkshire terrier"],["mix","Метис","Metis"]];
+const CAT_BREEDS=[["brit","Британская","Britanică"],["scot","Шотландская вислоухая","Scottish fold"],["maine","Мейн-кун","Maine coon"],["sphynx","Сфинкс","Sphynx"],["bengal","Бенгальская","Bengaleză"],["none","Беспородная","Fără rasă"]];
+
 const CATS = [
  {id:"auto",ic:"car",c:"#2563eb",ru:"Транспорт",ro:"Transport",
   subs:[["Легковые","Autoturisme"],["Грузовые","Camioane"],["Мото","Moto"],["Автобусы и микроавтобусы","Autobuze și microbuze"],["Спецтехника","Tehnică specială"],["Прицепы","Remorci"],["Запчасти","Piese auto"],["Шины и диски","Anvelope și jante"],["Водный транспорт","Transport pe apă"]],
   fields:[
-   {k:"brand",ru:"Марка",ro:"Marca",t:"sel",only:[0],opts:["Toyota","Volkswagen","BMW","Mercedes-Benz","Skoda","Dacia","Renault","Hyundai","Kia","Ford","Opel","Lexus","Tesla"]},
-   {k:"brand",ru:"Марка",ro:"Marca",t:"sel",only:[1,3],opts:["Mercedes-Benz","MAN","DAF","Iveco","Volkswagen","Ford"]},
-   {k:"brand",ru:"Марка",ro:"Marca",t:"sel",only:[2],opts:["Honda","Yamaha","Kawasaki","BMW","Suzuki"]},
-   {k:"year",ru:"Год выпуска",ro:"Anul fabricației",t:"rng",only:[0,1,2,3,4]},
-   {k:"mileage",ru:"Пробег",ro:"Rulaj",t:"rng",u:"км",only:[0,1,2,3]},
-   {k:"fuel",ru:"Топливо",ro:"Combustibil",t:"sel",only:[0,1,3],opts:FUEL},
-   {k:"gearbox",ru:"КПП",ro:"Cutia de viteze",t:"sel",only:[0,3],opts:GEAR},
-   {k:"body",ru:"Кузов",ro:"Caroserie",t:"sel",only:[0],opts:BODY}]},
+   {k:"brand",ru:"Марка",ro:"Marca",t:"sel",g:"main",only:[0],opts:CAR_BRANDS},
+   {k:"model",ru:"Модель",ro:"Model",t:"sel",g:"main",only:[0],dep:"brand",by:CAR_MODELS},
+   {k:"gen",ru:"Поколение",ro:"Generație",t:"sel",g:"main",only:[0],dep:"model",by:CAR_GENS},
+   {k:"brand",ru:"Марка",ro:"Marca",t:"sel",g:"main",only:[1,3],opts:["Mercedes-Benz","MAN","DAF","Iveco","Volkswagen","Ford","Renault"]},
+   {k:"brand",ru:"Марка",ro:"Marca",t:"sel",g:"main",only:[2],opts:["Honda","Yamaha","Kawasaki","BMW","Suzuki","KTM"]},
+   {k:"mtype",ru:"Тип мотоцикла",ro:"Tip motocicletă",t:"multi",g:"main",only:[2],opts:[["sport","Спортивный","Sport"],["naked","Нейкед","Naked"],["enduro","Эндуро","Enduro"],["cruiser","Круизер","Cruiser"],["touring","Туристический","Touring"],["scooter","Скутер","Scuter"]]},
+   {k:"body",ru:"Тип кузова",ro:"Caroserie",t:"multi",g:"main",only:[0],opts:BODY},
+   {k:"year",ru:"Год выпуска",ro:"Anul fabricației",t:"rng",g:"main",only:[0,1,2,3,4,8],gen:[2005,2024]},
+   {k:"mileage",ru:"Пробег",ro:"Rulaj",t:"rng",u:"км",g:"main",only:[0,1,2,3]},
+   {k:"fuel",ru:"Топливо",ro:"Combustibil",t:"multi",g:"tech",only:[0,1,3],opts:FUEL},
+   {k:"engine",ru:"Объём двигателя",ro:"Capacitate motor",t:"rng",u:"л",g:"tech",only:[0,1,3],step:.1},
+   {k:"cc",ru:"Объём двигателя",ro:"Capacitate motor",t:"rng",u:"см³",g:"tech",only:[2],gen:[50,1300]},
+   {k:"power",ru:"Мощность",ro:"Putere",t:"rng",u:"л.с.",g:"tech",only:[0,2]},
+   {k:"gearbox",ru:"Коробка передач",ro:"Cutia de viteze",t:"multi",g:"tech",only:[0,1,3],opts:GEAR},
+   {k:"drive",ru:"Привод",ro:"Tracțiune",t:"multi",g:"tech",only:[0],opts:DRIVE},
+   {k:"seats",ru:"Пассажирских мест",ro:"Locuri",t:"rng",g:"specs",only:[3],gen:[8,50]},
+   {k:"payload",ru:"Грузоподъёмность",ro:"Capacitate de încărcare",t:"rng",u:"т",g:"specs",only:[1,5],gen:[1,20]},
+   {k:"color",ru:"Цвет",ro:"Culoare",t:"color",g:"specs",only:[0,2],opts:COLORS},
+   {k:"wheel",ru:"Руль",ro:"Volan",t:"sel",g:"specs",only:[0],opts:[["left","Левый","Stânga"],["right","Правый","Dreapta"]]},
+   {k:"damage",ru:"Техническое состояние",ro:"Starea tehnică",t:"multi",g:"state",only:[0,1,2,3],opts:[["ok","Не битый","Nelovit"],["dmg","Битый","Lovit"],["parts","Не на ходу / на запчасти","Nu e în mers / piese"]]},
+   {k:"owners",ru:"Владельцев",ro:"Proprietari",t:"sel",g:"state",only:[0],opts:[["1","1","1"],["2","не более 2","cel mult 2"],["3","3 и более","3 și mai mulți"]]},
+   {k:"reg",ru:"Регистрация",ro:"Înmatriculare",t:"multi",g:"state",only:[0,1,2,3],opts:[["md","Молдова","Moldova"],["tr","Приднестровье","Transnistria"],["foreign","Иностранная","Străină"],["none","Не растаможен","Nevămuit"]]},
+   YN("trade","Возможен обмен","Schimb posibil","state",[0,2],.25),
+   YN("credit","Кредит / лизинг","Credit / leasing","state",[0],.15),
+   {k:"opts",ru:"Опции",ro:"Opțiuni",t:"multi",g:"opts",only:[0],opts:CAR_OPTS},
+   {k:"ptype",ru:"Тип запчасти",ro:"Tip piesă",t:"multi",g:"main",only:[6],opts:[["engine","Двигатель","Motor"],["body","Кузов","Caroserie"],["light","Оптика","Optică"],["susp","Подвеска","Suspensie"],["brake","Тормоза","Frâne"],["elec","Электрика","Electrică"],["interior","Салон","Salon"],["gear","КПП","Cutie"]]},
+   {k:"pfor",ru:"Для марки",ro:"Pentru marca",t:"sel",g:"main",only:[6],opts:CAR_BRANDS},
+   {k:"orig",ru:"Происхождение",ro:"Origine",t:"sel",g:"main",only:[6],opts:[["orig","Оригинал","Original"],["analog","Аналог","Analog"]]},
+   {k:"ttype",ru:"Что продаётся",ro:"Ce se vinde",t:"multi",g:"main",only:[7],opts:[["tires","Шины","Anvelope"],["rims","Диски","Jante"],["wheels","Колёса в сборе","Roți complete"]]},
+   {k:"season",ru:"Сезонность",ro:"Sezon",t:"multi",g:"main",only:[7],opts:[["summer","Летние","Vară"],["winter","Зимние","Iarnă"],["all","Всесезонные","Toate sezoanele"]]},
+   {k:"radius",ru:"Диаметр",ro:"Diametru",t:"multi",g:"specs",only:[7],opts:["R13","R14","R15","R16","R17","R18","R19","R20"]},
+   {k:"twidth",ru:"Ширина профиля",ro:"Lățime",t:"rng",u:"мм",g:"specs",only:[7],gen:[175,275]}]},
  {id:"real",ic:"house",c:"#0f766e",ru:"Недвижимость",ro:"Imobiliare",
   subs:[["Квартиры","Apartamente"],["Дома и дачи","Case și vile"],["Аренда квартир","Chirie apartamente"],["Посуточно","Chirie pe zi"],["Участки","Terenuri"],["Коммерческая","Spații comerciale"],["Гаражи","Garaje"]],
   fields:[
-   {k:"rooms",ru:"Комнат",ro:"Camere",t:"sel",only:[0,2,3],opts:[["1","1","1"],["2","2","2"],["3","3","3"],["4","4+","4+"]]},
-   {k:"area",ru:"Площадь",ro:"Suprafața",t:"rng",u:"м²",only:[0,1,2,3,5]},
-   {k:"floor",ru:"Этаж",ro:"Etaj",t:"rng",only:[0,2]},
-   {k:"sector",ru:"Район",ro:"Sector",t:"sel",only:[0,2,3],opts:[["Центр","Центр","Centru"],["Ботаника","Ботаника","Botanica"],["Рышкановка","Рышкановка","Râșcani"],["Чеканы","Чеканы","Ciocana"],["Буюканы","Буюканы","Buiucani"],["Телецентр","Телецентр","Telecentru"],["Скулянка","Скулянка","Sculeni"]]},
-   {k:"state",ru:"Ремонт",ro:"Starea",t:"sel",only:[0,1],opts:RSTATE},
-   {k:"building",ru:"Тип дома",ro:"Tip bloc",t:"sel",only:[0],opts:BUILD},
-   {k:"land",ru:"Участок",ro:"Teren",t:"rng",u:"соток",only:[1,4]}]},
+   {k:"rooms",ru:"Комнат",ro:"Camere",t:"multi",g:"main",only:[0,2,3],opts:[["0","Студия","Garsonieră"],["1","1","1"],["2","2","2"],["3","3","3"],["4","4+","4+"]]},
+   {k:"sector",ru:"Район",ro:"Sector",t:"multi",g:"main",only:[0,2,3],opts:SECTORS},
+   {k:"building",ru:"Тип жилья",ro:"Tip locuință",t:"multi",g:"main",only:[0],opts:BUILD},
+   {k:"area",ru:"Общая площадь",ro:"Suprafața totală",t:"rng",u:"м²",g:"main",only:[0,1,2,3,5]},
+   {k:"kitchen",ru:"Площадь кухни",ro:"Suprafața bucătăriei",t:"rng",u:"м²",g:"specs",only:[0,2],gen:[6,18]},
+   {k:"floor",ru:"Этаж",ro:"Etaj",t:"rng",g:"specs",only:[0,2,3,5]},
+   {k:"floors",ru:"Этажей в доме",ro:"Etaje în bloc",t:"rng",g:"specs",only:[0,1,2]},
+   YN("notfirst","Не первый этаж","Nu primul etaj","specs",[0,2]),
+   YN("notlast","Не последний этаж","Nu ultimul etaj","specs",[0,2]),
+   {k:"walls",ru:"Материал стен",ro:"Material pereți",t:"multi",g:"specs",only:[0,1],opts:WALLS},
+   {k:"state",ru:"Ремонт",ro:"Starea",t:"multi",g:"specs",only:[0,1,2],opts:RSTATE},
+   {k:"land",ru:"Участок",ro:"Teren",t:"rng",u:"соток",g:"main",only:[1,4]},
+   {k:"landuse",ru:"Назначение",ro:"Destinație",t:"multi",g:"main",only:[4],opts:[["build","Под строительство","Pentru construcție"],["agro","Сельхоз","Agricol"],["dacha","Дача / сад","Vilă / livadă"]]},
+   {k:"ctype",ru:"Тип помещения",ro:"Tip spațiu",t:"multi",g:"main",only:[5],opts:[["office","Офис","Oficiu"],["retail","Торговое","Comercial"],["storage","Склад","Depozit"],["food","Общепит","Alimentație"],["prod","Производство","Producție"]]},
+   {k:"gtype",ru:"Тип гаража",ro:"Tip garaj",t:"multi",g:"main",only:[6],opts:[["brick","Капитальный","Capital"],["metal","Металлический","Metalic"],["parking","Место в паркинге","Loc în parcare"]]},
+   YN("heating","Автономное отопление","Încălzire autonomă","house",[0,1,2,3],.55),
+   YN("balcony","Балкон / лоджия","Balcon / lojă","house",[0,2,3],.7),
+   YN("parking","Парковка","Parcare","house",[0,1,2,3,5],.45),
+   YN("furniture","С мебелью","Mobilat","house",[0,2,3],.5),
+   YN("appliances","С техникой","Cu tehnică","house",[0,2,3],.45),
+   YN("gas","Газ","Gaz","house",[1,4],.6),
+   YN("water","Вода и канализация","Apă și canalizare","house",[1,4],.6),
+   YN("pets","Можно с животными","Se acceptă animale","terms",[2,3],.3),
+   YN("owner","От собственника","De la proprietar","terms",[0,1,2,3,4,5,6],.6),
+   YN("installment","Рассрочка","În rate","terms",[0],.2)]},
  {id:"job",ic:"briefcase",c:"#7c3aed",ru:"Работа",ro:"Job",
   subs:[["Вакансии","Locuri de muncă"],["Резюме","CV-uri"],["Подработка","Part-time"]],
   fields:[
-   {k:"schedule",ru:"График",ro:"Program",t:"sel",opts:[["full","Полный день","Normă întreagă"],["shift","Сменный","În ture"],["remote","Удалённо","La distanță"],["part","Частичная занятость","Parțial"]]},
-   {k:"sphere",ru:"Сфера",ro:"Domeniu",t:"sel",opts:[["sales","Продажи","Vânzări"],["it","IT","IT"],["transport","Транспорт","Transport"],["food","Общепит","HoReCa"],["build","Строительство","Construcții"],["office","Офис","Birou"]]}]},
+   {k:"sphere",ru:"Сфера",ro:"Domeniu",t:"multi",g:"main",opts:[["sales","Продажи","Vânzări"],["it","IT","IT"],["transport","Транспорт и логистика","Transport și logistică"],["food","Общепит","HoReCa"],["build","Строительство","Construcții"],["office","Офис","Birou"],["medical","Медицина","Medicină"],["edu","Образование","Educație"]]},
+   {k:"schedule",ru:"График",ro:"Program",t:"multi",g:"main",opts:[["full","Полный день","Normă întreagă"],["shift","Сменный","În ture"],["flex","Гибкий","Flexibil"],["part","Частичная занятость","Parțial"]]},
+   {k:"exp",ru:"Опыт работы",ro:"Experiență",t:"multi",g:"main",opts:[["none","Без опыта","Fără experiență"],["1","1–3 года","1–3 ani"],["3","3–6 лет","3–6 ani"],["6","Более 6 лет","Peste 6 ani"]]},
+   YN("remote","Удалённая работа","Lucru la distanță","terms",null,.2),
+   YN("official","Официальное оформление","Angajare oficială","terms",null,.7),
+   YN("students","Подходит студентам","Potrivit pentru studenți","terms",null,.25)]},
  {id:"elec",ic:"smartphone",c:"#0891b2",ru:"Электроника",ro:"Electronice",
   subs:[["Телефоны","Telefoane"],["Ноутбуки","Laptopuri"],["Компьютеры (ПК)","Calculatoare (PC)"],["Планшеты","Tablete"],["Телевизоры","Televizoare"],["Аудио","Audio"],["Фото и видео","Foto și video"],["Игровые приставки","Console de jocuri"],["Комплектующие","Componente"]],
   fields:[
-   {k:"brand",ru:"Бренд",ro:"Brand",t:"sel",only:[0,3],opts:["Apple","Samsung","Xiaomi","Google"]},
-   {k:"brand",ru:"Бренд",ro:"Brand",t:"sel",only:[1],opts:["Apple","Lenovo","ASUS","HP","Acer","Dell"]},
-   {k:"brand",ru:"Бренд",ro:"Brand",t:"sel",only:[4],opts:["Samsung","LG","Sony","Xiaomi"]},
-   {k:"cpu",ru:"Процессор",ro:"Procesor",t:"sel",only:[2],opts:CPU},
-   {k:"gpu",ru:"Видеокарта",ro:"Placă video",t:"sel",only:[2,8],opts:GPU},
-   {k:"ram",ru:"Оперативная память",ro:"Memorie RAM",t:"rng",u:"ГБ",only:[0,1,2,3]},
-   {k:"storage",ru:"Накопитель",ro:"Stocare",t:"rng",u:"ГБ",only:[0,1,2,3]},
-   {k:"screen",ru:"Диагональ",ro:"Diagonala",t:"rng",u:"\"",only:[4]}]},
+   {k:"brand",ru:"Бренд",ro:"Brand",t:"sel",g:"main",only:[0],opts:Object.keys(PHONE_DB)},
+   {k:"model",ru:"Модель",ro:"Model",t:"sel",g:"main",only:[0],dep:"brand",by:PHONE_DB},
+   {k:"brand",ru:"Бренд",ro:"Brand",t:"sel",g:"main",only:[3],opts:["Apple","Samsung","Xiaomi","Lenovo"]},
+   {k:"brand",ru:"Бренд",ro:"Brand",t:"multi",g:"main",only:[1],opts:["Apple","Lenovo","ASUS","HP","Acer","Dell","MSI"]},
+   {k:"lpurpose",ru:"Назначение",ro:"Destinație",t:"multi",g:"main",only:[1,2],opts:[["gaming","Игровой","Gaming"],["office","Для работы и учёбы","Birou și studii"],["ultra","Ультрабук / тонкий","Ultrabook"],["pro","Для монтажа и дизайна","Editare și design"]]},
+   {k:"lcpu",ru:"Процессор",ro:"Procesor",t:"multi",g:"specs",only:[1],opts:LAPTOP_CPU},
+   {k:"cpu",ru:"Процессор",ro:"Procesor",t:"multi",g:"specs",only:[2],opts:CPU},
+   {k:"gpu",ru:"Видеокарта",ro:"Placă video",t:"multi",g:"specs",only:[2,8],opts:GPU},
+   {k:"ram",ru:"Оперативная память",ro:"Memorie RAM",t:"rng",u:"ГБ",g:"specs",only:[0,1,2,3]},
+   {k:"storage",ru:"Встроенная память / SSD",ro:"Memorie / SSD",t:"multi",g:"specs",only:[0,1,2,3],opts:[["64","64 ГБ","64 GB"],["128","128 ГБ","128 GB"],["256","256 ГБ","256 GB"],["512","512 ГБ","512 GB"],["1000","1 ТБ","1 TB"],["2000","2 ТБ","2 TB"]]},
+   {k:"lscreen",ru:"Диагональ экрана",ro:"Diagonala",t:"rng",u:"″",g:"specs",only:[1,3]},
+   YN("dgpu","Дискретная видеокарта","Placă video dedicată","specs",[1],.4),
+   {k:"brand",ru:"Бренд",ro:"Brand",t:"multi",g:"main",only:[4],opts:["Samsung","LG","Sony","Xiaomi","Philips"]},
+   {k:"screen",ru:"Диагональ",ro:"Diagonala",t:"rng",u:"″",g:"main",only:[4]},
+   {k:"panel",ru:"Тип матрицы",ro:"Tip ecran",t:"multi",g:"specs",only:[4],opts:["OLED","QLED","NanoCell","LED"]},
+   {k:"res",ru:"Разрешение",ro:"Rezoluție",t:"multi",g:"specs",only:[4],opts:["4K UHD","Full HD","8K"]},
+   YN("smart","Smart TV","Smart TV","specs",[4],.85),
+   {k:"platform",ru:"Платформа",ro:"Platformă",t:"multi",g:"main",only:[7],opts:["PlayStation","Xbox","Nintendo","Steam Deck"]},
+   {k:"part",ru:"Тип комплектующих",ro:"Tip componentă",t:"multi",g:"main",only:[8],opts:[["gpu","Видеокарта","Placă video"],["cpu","Процессор","Procesor"],["ram","Оперативная память","Memorie RAM"],["ssd","Накопитель","Stocare"],["mon","Монитор","Monitor"],["psu","Блок питания","Sursă"]]},
+   {k:"color",ru:"Цвет",ro:"Culoare",t:"color",g:"specs",only:[0,3],opts:COLORS.filter(c=>["white","black","silver","grey","blue","green"].includes(c[0]))},
+   YN("warranty","На гарантии","În garanție","state",[0,1,2,3,4,7,8],.3),
+   YN("box","Есть коробка и документы","Cu cutie și acte","state",[0,1,3,4,7],.5)]},
  {id:"home",ic:"sofa",c:"#b45309",ru:"Дом и сад",ro:"Casă și grădină",
   subs:[["Мебель","Mobilă"],["Кухни","Bucătării"],["Освещение","Iluminat"],["Декор и ковры","Decor și covoare"],["Сад и огород","Grădină"],["Текстиль","Textile"]],
-  fields:[{k:"material",ru:"Материал",ro:"Material",t:"sel",only:[0,1],opts:[["wood","Дерево","Lemn"],["chip","ДСП/МДФ","PAL/MDF"],["metal","Металл","Metal"],["fabric","Ткань","Țesătură"]]}]},
+  fields:[
+   {k:"ftype",ru:"Тип мебели",ro:"Tip mobilă",t:"multi",g:"main",only:[0],opts:[["sofa","Диваны и кресла","Canapele și fotolii"],["bed","Кровати и матрасы","Paturi și saltele"],["wardrobe","Шкафы и комоды","Dulapuri și comode"],["table","Столы и стулья","Mese și scaune"],["shelf","Стеллажи и полки","Rafturi"]]},
+   {k:"material",ru:"Материал",ro:"Material",t:"multi",g:"specs",only:[0,1],opts:[["wood","Массив дерева","Lemn masiv"],["chip","ДСП / МДФ","PAL / MDF"],["metal","Металл","Metal"],["fabric","Ткань","Țesătură"],["leather","Кожа / экокожа","Piele / eco-piele"]]},
+   {k:"color",ru:"Цвет",ro:"Culoare",t:"color",g:"specs",only:[0,1,5],opts:COLORS},
+   YN("assembly","Помощь с доставкой и сборкой","Ajutor la livrare și montaj","terms",[0,1],.3)]},
  {id:"appl",ic:"washing-machine",c:"#475569",ru:"Бытовая техника",ro:"Electrocasnice",
   subs:[["Холодильники","Frigidere"],["Стиральные машины","Mașini de spălat"],["Плиты и духовки","Aragaze și cuptoare"],["Кондиционеры","Aparate de aer condiționat"],["Пылесосы","Aspiratoare"],["Мелкая техника","Electrocasnice mici"]],
-  fields:[{k:"brand",ru:"Бренд",ro:"Brand",t:"sel",opts:["Bosch","Samsung","LG","Electrolux","Beko","Gree","Xiaomi","Philips"]}]},
+  fields:[
+   {k:"brand",ru:"Бренд",ro:"Brand",t:"multi",g:"main",opts:["Bosch","Samsung","LG","Electrolux","Beko","Gree","Xiaomi","Philips","Indesit"]},
+   YN("nofrost","No Frost","No Frost","specs",[0],.6),
+   {k:"height",ru:"Высота",ro:"Înălțime",t:"rng",u:"см",g:"specs",only:[0],gen:[140,205]},
+   {k:"load",ru:"Загрузка",ro:"Încărcare",t:"rng",u:"кг",g:"specs",only:[1],gen:[5,10]},
+   {k:"loadtype",ru:"Тип загрузки",ro:"Tip încărcare",t:"multi",g:"specs",only:[1],opts:[["front","Фронтальная","Frontală"],["top","Вертикальная","Verticală"]]},
+   {k:"stove",ru:"Тип плиты",ro:"Tip aragaz",t:"multi",g:"specs",only:[2],opts:[["gas","Газовая","Gaz"],["el","Электрическая","Electric"],["ind","Индукционная","Inducție"],["oven","Духовой шкаф","Cuptor"]]},
+   {k:"btu",ru:"Мощность",ro:"Putere",t:"multi",g:"specs",only:[3],opts:["7 BTU","9 BTU","12 BTU","18 BTU","24 BTU"]},
+   YN("inverter","Инверторный","Inverter","specs",[3],.6),
+   YN("install","С установкой","Cu montaj","terms",[3],.5),
+   {k:"vtype",ru:"Тип пылесоса",ro:"Tip aspirator",t:"multi",g:"specs",only:[4],opts:[["robot","Робот","Robot"],["stick","Вертикальный","Vertical"],["classic","Классический","Clasic"]]},
+   {k:"energy",ru:"Класс энергопотребления",ro:"Clasa energetică",t:"multi",g:"specs",only:[0,1,2],opts:["A+++","A++","A+","A","B"]},
+   YN("warranty","На гарантии","În garanție","state",null,.3)]},
  {id:"cloth",ic:"shirt",c:"#db2777",ru:"Одежда и обувь",ro:"Haine și încălțăminte",
   subs:[["Женская одежда","Haine pentru femei"],["Мужская одежда","Haine pentru bărbați"],["Обувь","Încălțăminte"],["Сумки и аксессуары","Genți și accesorii"]],
-  fields:[{k:"size",ru:"Размер",ro:"Mărime",t:"sel",only:[0,1],opts:["XS","S","M","L","XL","XXL"]},{k:"shoe",ru:"Размер обуви",ro:"Mărime încălțăminte",t:"rng",only:[2]}]},
+  fields:[
+   {k:"ctype",ru:"Вид одежды",ro:"Tip haine",t:"multi",g:"main",only:[0,1],opts:[["outer","Верхняя одежда","Îmbrăcăminte exterioară"],["dress","Платья и юбки","Rochii și fuste"],["suit","Костюмы","Costume"],["jeans","Джинсы и брюки","Blugi și pantaloni"],["top","Футболки и рубашки","Tricouri și cămăși"],["sport","Спортивная","Sport"]]},
+   {k:"shtype",ru:"Вид обуви",ro:"Tip încălțăminte",t:"multi",g:"main",only:[2],opts:[["sneak","Кроссовки и кеды","Adidași"],["boots","Ботинки и сапоги","Ghete și cizme"],["shoes","Туфли","Pantofi"],["summer","Летняя обувь","Încălțăminte de vară"]]},
+   {k:"gender",ru:"Для кого",ro:"Pentru cine",t:"multi",g:"main",only:[2,3],opts:[["w","Женское","Femei"],["m","Мужское","Bărbați"],["u","Унисекс","Unisex"]]},
+   {k:"size",ru:"Размер",ro:"Mărime",t:"multi",g:"specs",only:[0,1],opts:SIZES},
+   {k:"shoe",ru:"Размер обуви",ro:"Mărime încălțăminte",t:"rng",g:"specs",only:[2],gen:[35,46]},
+   {k:"cbrand",ru:"Бренд",ro:"Brand",t:"multi",g:"specs",opts:CLOTH_BRANDS},
+   {k:"season",ru:"Сезон",ro:"Sezon",t:"multi",g:"specs",only:[0,1,2],opts:[["summer","Лето","Vară"],["demi","Демисезон","Demisezon"],["winter","Зима","Iarnă"]]},
+   {k:"color",ru:"Цвет",ro:"Culoare",t:"color",g:"specs",opts:COLORS}]},
  {id:"kids",ic:"baby",c:"#f59e0b",ru:"Детский мир",ro:"Lumea copiilor",
   subs:[["Коляски","Cărucioare"],["Автокресла","Scaune auto"],["Игрушки","Jucării"],["Детская мебель","Mobilă pentru copii"],["Детская одежда","Haine pentru copii"]],
-  fields:[{k:"age",ru:"Возраст",ro:"Vârsta",t:"sel",opts:[["0","0–1 год","0–1 an"],["1","1–3 года","1–3 ani"],["3","3–7 лет","3–7 ani"],["7","7+ лет","7+ ani"]]}]},
+  fields:[
+   {k:"age",ru:"Возраст",ro:"Vârsta",t:"multi",g:"main",opts:[["0","0–1 год","0–1 an"],["1","1–3 года","1–3 ani"],["3","3–7 лет","3–7 ani"],["7","7+ лет","7+ ani"]]},
+   {k:"stype",ru:"Тип коляски",ro:"Tip cărucior",t:"multi",g:"main",only:[0],opts:[["2in1","2 в 1","2 în 1"],["3in1","3 в 1","3 în 1"],["walk","Прогулочная","Sport"],["twin","Для двойни","Pentru gemeni"]]},
+   {k:"group",ru:"Группа автокресла",ro:"Grupa scaunului",t:"multi",g:"main",only:[1],opts:["0+ (0–13 кг)","0+/1 (0–18 кг)","1/2/3 (9–36 кг)","2/3 (15–36 кг)"]},
+   YN("isofix","Isofix","Isofix","specs",[1],.6),
+   {k:"kgender",ru:"Для кого",ro:"Pentru cine",t:"multi",g:"main",only:[2,4],opts:[["boy","Мальчик","Băiat"],["girl","Девочка","Fată"],["u","Унисекс","Unisex"]]}]},
  {id:"build",ic:"hammer",c:"#a16207",ru:"Стройка и ремонт",ro:"Construcții și reparații",
-  subs:[["Стройматериалы","Materiale"],["Инструменты","Unelte"],["Сантехника","Sanitare"],["Электрика","Electrice"],["Двери и окна","Uși și geamuri"]]},
+  subs:[["Стройматериалы","Materiale"],["Инструменты","Unelte"],["Сантехника","Sanitare"],["Электрика","Electrice"],["Двери и окна","Uși și geamuri"]],
+  fields:[
+   {k:"mtype",ru:"Материал",ro:"Material",t:"multi",g:"main",only:[0],opts:[["blocks","Блоки и кирпич","Blocuri și cărămidă"],["roof","Кровля","Acoperiș"],["floor","Напольные покрытия","Pardoseli"],["mix","Смеси и цемент","Amestecuri și ciment"],["wood","Пиломатериалы","Cherestea"]]},
+   {k:"tbrand",ru:"Бренд инструмента",ro:"Brand",t:"multi",g:"main",only:[1],opts:["Makita","Bosch","DeWalt","Metabo","Einhell","Другой"]},
+   {k:"power",ru:"Питание",ro:"Alimentare",t:"multi",g:"specs",only:[1],opts:[["battery","Аккумулятор","Acumulator"],["mains","От сети","De la rețea"],["manual","Ручной","Manual"]]},
+   YN("delivery_site","Доставка на объект","Livrare la obiect","terms",[0,4],.4)]},
  {id:"serv",ic:"wrench",c:"#0d9488",ru:"Услуги",ro:"Servicii",
-  subs:[["Ремонт и отделка","Reparații și finisări"],["Перевозки","Transportări"],["Обучение","Educație"],["Красота","Frumusețe"],["IT-услуги","Servicii IT"],["Ремонт техники","Reparație tehnică"],["Уборка","Curățenie"]]},
+  subs:[["Ремонт и отделка","Reparații și finisări"],["Перевозки","Transportări"],["Обучение","Educație"],["Красота","Frumusețe"],["IT-услуги","Servicii IT"],["Ремонт техники","Reparație tehnică"],["Уборка","Curățenie"]],
+  fields:[
+   {k:"stype",ru:"Вид услуги",ro:"Tip serviciu",t:"multi",g:"main",only:[0],opts:[["elec","Электрика","Electrică"],["plumb","Сантехника","Sanitare"],["tile","Плитка","Faianță"],["paint","Покраска и обои","Vopsire și tapet"],["turnkey","Ремонт под ключ","La cheie"]]},
+   {k:"ttype",ru:"Вид перевозки",ro:"Tip transport",t:"multi",g:"main",only:[1],opts:[["cargo","Грузовые","Marfă"],["move","Переезды","Mutări"],["evac","Эвакуатор","Evacuator"],["intl","Международные","Internaționale"]]},
+   {k:"subject",ru:"Предмет",ro:"Materie",t:"multi",g:"main",only:[2],opts:[["en","Английский","Engleză"],["ro","Румынский","Română"],["math","Математика","Matematică"],["prog","Программирование","Programare"],["music","Музыка","Muzică"]]},
+   {k:"format",ru:"Формат",ro:"Format",t:"multi",g:"main",only:[2,4],opts:[["online","Онлайн","Online"],["offline","Очно","Fizic"]]},
+   YN("homevisit","Выезд на дом","Deplasare la domiciliu","terms",[0,3,5,6],.6),
+   YN("guarantee","Гарантия на работу","Garanție","terms",[0,5],.6),
+   YN("weekend","Работаем в выходные","Lucrăm în weekend","terms",null,.4)]},
  {id:"pets",ic:"paw-print",c:"#ea580c",ru:"Животные",ro:"Animale",
-  subs:[["Собаки","Câini"],["Кошки","Pisici"],["Птицы","Păsări"],["Аквариумистика","Acvaristică"],["Товары для животных","Accesorii"]]},
- {id:"sport",ic:"bike",c:"#16a34a",ru:"Спорт и хобби",ro:"Sport și hobby",
-  subs:[["Велосипеды","Biciclete"],["Тренажёры","Aparate fitness"],["Туризм","Turism"],["Зимний спорт","Sporturi de iarnă"],["Музыкальные инструменты","Instrumente muzicale"],["Книги","Cărți"]]},
+  subs:[["Собаки","Câini"],["Кошки","Pisici"],["Птицы","Păsări"],["Аквариумистика","Acvaristică"],["Товары для животных","Accesorii"]],
+  fields:[
+   {k:"breed",ru:"Порода",ro:"Rasă",t:"multi",g:"main",only:[0],opts:DOG_BREEDS},
+   {k:"breed",ru:"Порода",ro:"Rasă",t:"multi",g:"main",only:[1],opts:CAT_BREEDS},
+   {k:"agem",ru:"Возраст",ro:"Vârsta",t:"rng",u:"мес.",g:"main",only:[0,1,2],gen:[2,36]},
+   {k:"sex",ru:"Пол",ro:"Sex",t:"multi",g:"main",only:[0,1,2],opts:[["m","Мальчик","Mascul"],["f","Девочка","Femelă"]]},
+   YN("vacc","Привит","Vaccinat","state",[0,1],.7),
+   YN("docs","Документы / родословная","Acte / pedigree","state",[0,1],.35)]},
+ {id:"sport",ic:"bike",c:"#16a34a",ru:"Спорт, хобби, рыбалка",ro:"Sport, hobby, pescuit",
+  subs:[["Велосипеды","Biciclete"],["Тренажёры","Aparate fitness"],["Туризм","Turism"],["Зимний спорт","Sporturi de iarnă"],["Музыкальные инструменты","Instrumente muzicale"],["Книги","Cărți"],["Рыбалка","Pescuit"]],
+  fields:[
+   {k:"btype",ru:"Тип велосипеда",ro:"Tip bicicletă",t:"multi",g:"main",only:[0],opts:[["mtb","Горный","Munte"],["city","Городской","Oraș"],["road","Шоссейный","Șosea"],["kids","Детский","Copii"],["ebike","Электровелосипед","Electrică"]]},
+   {k:"wheelsz",ru:"Диаметр колёс",ro:"Diametru roți",t:"multi",g:"specs",only:[0],opts:["16″","20″","24″","26″","27.5″","28″","29″"]},
+   {k:"frame",ru:"Размер рамы",ro:"Mărime cadru",t:"multi",g:"specs",only:[0],opts:["XS","S","M","L","XL"]},
+   {k:"itype",ru:"Инструмент",ro:"Instrument",t:"multi",g:"main",only:[4],opts:[["guitar","Гитара","Chitară"],["piano","Пианино / синтезатор","Pian / sintetizator"],["drums","Ударные","Tobe"],["violin","Скрипка","Vioară"],["other","Другое","Altele"]]},
+   {k:"fish",ru:"Что продаётся",ro:"Ce se vinde",t:"multi",g:"main",only:[6],opts:[["rod","Удилища","Undițe"],["reel","Катушки","Mulinete"],["lure","Приманки и снасти","Momeli și accesorii"],["boat","Лодки и моторы","Bărci și motoare"],["echo","Эхолоты","Sonare"]]},
+   {k:"fstyle",ru:"Вид ловли",ro:"Tip pescuit",t:"multi",g:"main",only:[6],opts:[["carp","Карповая","Crap"],["spin","Спиннинг","Spinning"],["feeder","Фидер","Feeder"],["float","Поплавочная","Plută"]]}]},
  {id:"agro",ic:"tractor",c:"#65a30d",ru:"Сельхоз",ro:"Agricultură",
-  subs:[["Сельхозтехника","Tehnică agricolă"],["Урожай","Recoltă"],["Скот и птица","Animale și păsări"],["Саженцы","Puieți"],["Корма и удобрения","Furaje și îngrășăminte"]]},
+  subs:[["Сельхозтехника","Tehnică agricolă"],["Урожай","Recoltă"],["Скот и птица","Animale și păsări"],["Саженцы","Puieți"],["Корма и удобрения","Furaje și îngrășăminte"]],
+  fields:[
+   {k:"atype",ru:"Вид техники",ro:"Tip tehnică",t:"multi",g:"main",only:[0],opts:[["tractor","Тракторы","Tractoare"],["motoblock","Мотоблоки","Motocultoare"],["tool","Навесное оборудование","Echipament atașat"],["harv","Комбайны","Combine"]]},
+   {k:"crop",ru:"Продукция",ro:"Produse",t:"multi",g:"main",only:[1],opts:[["grain","Зерно","Cereale"],["fruit","Фрукты","Fructe"],["veg","Овощи","Legume"],["honey","Мёд","Miere"],["wine","Вино","Vin"]]},
+   {k:"animal",ru:"Животные",ro:"Animale",t:"multi",g:"main",only:[2],opts:[["cow","КРС","Bovine"],["pig","Свиньи","Porci"],["sheep","Овцы и козы","Oi și capre"],["poultry","Птица","Păsări"]]},
+   YN("organic","Своё хозяйство / без химии","Gospodărie proprie / bio","state",[1],.6)]},
  {id:"biz",ic:"building-2",c:"#334155",ru:"Бизнес",ro:"Business",
   subs:[["Оборудование","Echipament"],["Готовый бизнес","Afacere gata"],["Помещения","Spații"]]},
  {id:"free",ic:"gift",c:"#e11d48",ru:"Отдам даром",ro:"Gratuit",
