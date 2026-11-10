@@ -198,3 +198,44 @@ const CAT_BREEDS = [["brit","Британская","Britanică"],["scot","Шот
  ["bengal","Бенгальская","Bengaleză"],["persian","Персидская","Persană"],["siam","Сиамская","Siameză"],["ragdoll","Рэгдолл","Ragdoll"],["russianblue","Русская голубая","Albastră rusească"],["exotic","Экзотическая","Exotică"],["siberian","Сибирская","Siberiană"],["none","Беспородная","Fără rasă"]];
 const TOOL_BRANDS = ["Bosch","DeWalt","Einhell","Hilti","Hitachi / HiKOKI","Makita","Metabo","Milwaukee","Ryobi","Stanley","Stihl","Total","Другой"];
 const HOUSE_SERIES = [["102","Серия 102","Seria 102"],["135","Серия 135","Seria 135"],["143","Серия 143","Seria 143"],["ms","Серия MS (чешка)","Seria MS (cehă)"],["khr","Хрущёвка","Hrușciovka"],["brezh","Брежневка","Brejnevka"],["stalin","Сталинка","Stalinka"],["indiv","Индивидуальный проект","Proiect individual"]];
+
+/* ---- Видеокарты: производитель → серия → модель + характеристики (объём, тип памяти, шина) ---- */
+const GPU_SERIES_OF = m => /^GTX 9/.test(m)?"GeForce GTX 900":/^GTX 10/.test(m)?"GeForce GTX 10":/^GTX 16/.test(m)?"GeForce GTX 16":/^GTX 7/.test(m)?"GeForce GTX 700":
+  /^RTX 20/.test(m)?"GeForce RTX 20":/^RTX 30/.test(m)?"GeForce RTX 30":/^RTX 40/.test(m)?"GeForce RTX 40":/^RTX 50/.test(m)?"GeForce RTX 50":
+  /^RX [45]\d0$/.test(m)?"Radeon RX 400/500":/Vega/.test(m)?"Radeon RX Vega":/^RX 5\d00/.test(m)?"Radeon RX 5000":/^RX 6\d\d0/.test(m)?"Radeon RX 6000":/^RX 7\d00/.test(m)?"Radeon RX 7000":/^RX 9\d\d0/.test(m)?"Radeon RX 9000":
+  /^Arc A/.test(m)?"Arc A":/^Arc B/.test(m)?"Arc B":"Другое";
+const GPU_SERIES = Object.fromEntries(Object.entries(GPU_DB).map(([v,ms])=>[v,[...new Set(ms.map(GPU_SERIES_OF))]]));
+const GPU_BY_SERIES = {}; GPU_ALL.forEach(m=>{ (GPU_BY_SERIES[GPU_SERIES_OF(m)] ||= []).push(m); });
+const GPU_VENDOR_OF = m => Object.keys(GPU_DB).find(v=>GPU_DB[v].includes(m));
+// объём видеопамяти (ГБ), тип памяти, разрядность шины (бит)
+const GPU_SPEC = {"GTX 750 Ti":[2,"GDDR5",128],"GTX 950":[2,"GDDR5",128],"GTX 960":[4,"GDDR5",128],"GTX 970":[4,"GDDR5",256],"GTX 980":[4,"GDDR5",256],"GTX 980 Ti":[6,"GDDR5",384],
+ "GTX 1050":[2,"GDDR5",128],"GTX 1050 Ti":[4,"GDDR5",128],"GTX 1060 3GB":[3,"GDDR5",192],"GTX 1060 6GB":[6,"GDDR5",192],"GTX 1070":[8,"GDDR5",256],"GTX 1070 Ti":[8,"GDDR5",256],"GTX 1080":[8,"GDDR5X",256],"GTX 1080 Ti":[11,"GDDR5X",352],
+ "GTX 1630":[4,"GDDR6",64],"GTX 1650":[4,"GDDR5",128],"GTX 1650 Super":[4,"GDDR6",128],"GTX 1660":[6,"GDDR5",192],"GTX 1660 Super":[6,"GDDR6",192],"GTX 1660 Ti":[6,"GDDR6",192],
+ "RTX 2060":[6,"GDDR6",192],"RTX 2060 Super":[8,"GDDR6",256],"RTX 2070":[8,"GDDR6",256],"RTX 2070 Super":[8,"GDDR6",256],"RTX 2080":[8,"GDDR6",256],"RTX 2080 Super":[8,"GDDR6",256],"RTX 2080 Ti":[11,"GDDR6",352],
+ "RTX 3050":[8,"GDDR6",128],"RTX 3060":[12,"GDDR6",192],"RTX 3060 Ti":[8,"GDDR6",256],"RTX 3070":[8,"GDDR6",256],"RTX 3070 Ti":[8,"GDDR6X",256],"RTX 3080":[10,"GDDR6X",320],"RTX 3080 Ti":[12,"GDDR6X",384],"RTX 3090":[24,"GDDR6X",384],"RTX 3090 Ti":[24,"GDDR6X",384],
+ "RTX 4060":[8,"GDDR6",128],"RTX 4060 Ti":[8,"GDDR6",128],"RTX 4070":[12,"GDDR6X",192],"RTX 4070 Super":[12,"GDDR6X",192],"RTX 4070 Ti":[12,"GDDR6X",192],"RTX 4070 Ti Super":[16,"GDDR6X",256],"RTX 4080":[16,"GDDR6X",256],"RTX 4080 Super":[16,"GDDR6X",256],"RTX 4090":[24,"GDDR6X",384],
+ "RTX 5050":[8,"GDDR6",128],"RTX 5060":[8,"GDDR7",128],"RTX 5060 Ti":[16,"GDDR7",128],"RTX 5070":[12,"GDDR7",192],"RTX 5070 Ti":[16,"GDDR7",256],"RTX 5080":[16,"GDDR7",256],"RTX 5090":[32,"GDDR7",512],
+ "RX 460":[4,"GDDR5",128],"RX 470":[4,"GDDR5",256],"RX 480":[8,"GDDR5",256],"RX 550":[4,"GDDR5",128],"RX 560":[4,"GDDR5",128],"RX 570":[8,"GDDR5",256],"RX 580":[8,"GDDR5",256],"RX 590":[8,"GDDR5",256],"RX Vega 56":[8,"HBM2",2048],"RX Vega 64":[8,"HBM2",2048],
+ "RX 5500 XT":[8,"GDDR6",128],"RX 5600 XT":[6,"GDDR6",192],"RX 5700":[8,"GDDR6",256],"RX 5700 XT":[8,"GDDR6",256],"RX 6400":[4,"GDDR6",64],"RX 6500 XT":[4,"GDDR6",64],"RX 6600":[8,"GDDR6",128],"RX 6600 XT":[8,"GDDR6",128],"RX 6650 XT":[8,"GDDR6",128],
+ "RX 6700 XT":[12,"GDDR6",192],"RX 6750 XT":[12,"GDDR6",192],"RX 6800":[16,"GDDR6",256],"RX 6800 XT":[16,"GDDR6",256],"RX 6900 XT":[16,"GDDR6",256],"RX 6950 XT":[16,"GDDR6",256],
+ "RX 7600":[8,"GDDR6",128],"RX 7600 XT":[16,"GDDR6",128],"RX 7700 XT":[12,"GDDR6",192],"RX 7800 XT":[16,"GDDR6",256],"RX 7900 GRE":[16,"GDDR6",256],"RX 7900 XT":[20,"GDDR6",320],"RX 7900 XTX":[24,"GDDR6",384],
+ "RX 9060 XT":[16,"GDDR6",128],"RX 9070":[16,"GDDR6",256],"RX 9070 XT":[16,"GDDR6",256],"Arc A380":[6,"GDDR6",96],"Arc A580":[8,"GDDR6",256],"Arc A750":[8,"GDDR6",256],"Arc A770":[16,"GDDR6",256],"Arc B570":[10,"GDDR6",160],"Arc B580":[12,"GDDR6",192]};
+const GPU_POWER_OF = m => /^(GTX 750|GTX 1050|GTX 1630|GTX 1650$|RX 6400|RX 550|RX 560|RX 460)/.test(m) ? "none" : /^RTX (40[89]0|4070 Ti|50[789]0|5070 Ti)/.test(m) ? "12vhpwr" : /^(RTX (3080|3090|2080)|RX (6800|6900|6950|7800|7900|9070)|GTX 1080 Ti|RX Vega)/.test(m) ? "2x8" : "8";
+const GPU_BRANDS = ["ASUS","MSI","Gigabyte","Palit","Zotac","Gainward","Sapphire","PowerColor","XFX","ASRock","Inno3D","PNY","NVIDIA Founders Edition"];
+
+/* ---- Процессоры: производитель → серия → модель + ядра, потоки, сокет ---- */
+const CPU_SERIES_OF = m => (m.match(/Core (i[3579]|Ultra [579])|Ryzen [3579]/)||[""])[0].replace(/^Core /,"Core ");
+const CPU_SERIES = {Intel:["Core i3","Core i5","Core i7","Core i9","Core Ultra 5","Core Ultra 7","Core Ultra 9"], AMD:["Ryzen 3","Ryzen 5","Ryzen 7","Ryzen 9"]};
+const CPU_BY_SERIES = {}; CPU_ALL.forEach(m=>{ (CPU_BY_SERIES[CPU_SERIES_OF(m)] ||= []).push(m); });
+const CPU_SPEC = {"Core i3-10100F":[4,8],"Core i3-12100F":[4,8],"Core i3-13100F":[4,8],"Core i5-9400F":[6,6],"Core i5-10400F":[6,12],"Core i5-11400F":[6,12],"Core i5-12400F":[6,12],"Core i5-12600K":[10,16],
+ "Core i5-13400F":[10,16],"Core i5-13600K":[14,20],"Core i5-14400F":[10,16],"Core i5-14600K":[14,20],"Core i7-9700K":[8,8],"Core i7-10700K":[8,16],"Core i7-11700K":[8,16],"Core i7-12700K":[12,20],"Core i7-13700K":[16,24],"Core i7-14700K":[20,28],
+ "Core i9-9900K":[8,16],"Core i9-10900K":[10,20],"Core i9-12900K":[16,24],"Core i9-13900K":[24,32],"Core i9-14900K":[24,32],"Core Ultra 5 245K":[14,14],"Core Ultra 7 265K":[20,20],"Core Ultra 9 285K":[24,24],
+ "Ryzen 3 3200G":[4,4],"Ryzen 5 1600":[6,12],"Ryzen 5 2600":[6,12],"Ryzen 5 3600":[6,12],"Ryzen 5 5500":[6,12],"Ryzen 5 5600":[6,12],"Ryzen 5 5600X":[6,12],"Ryzen 5 7500F":[6,12],"Ryzen 5 7600":[6,12],"Ryzen 5 7600X":[6,12],"Ryzen 5 9600X":[6,12],
+ "Ryzen 7 2700X":[8,16],"Ryzen 7 3700X":[8,16],"Ryzen 7 5700X":[8,16],"Ryzen 7 5800X":[8,16],"Ryzen 7 5800X3D":[8,16],"Ryzen 7 7700X":[8,16],"Ryzen 7 7800X3D":[8,16],"Ryzen 7 9700X":[8,16],"Ryzen 7 9800X3D":[8,16],
+ "Ryzen 9 5900X":[12,24],"Ryzen 9 5950X":[16,32],"Ryzen 9 7900X":[12,24],"Ryzen 9 7950X":[16,32],"Ryzen 9 9900X":[12,24],"Ryzen 9 9950X":[16,32]};
+const CPU_SOCKET_OF = m => /i\d-9\d{3}/.test(m)?"LGA1151":/i\d-1[01]\d{3}/.test(m)?"LGA1200":/i\d-1[234]\d{3}/.test(m)?"LGA1700":/Ultra/.test(m)?"LGA1851":/Ryzen \d [79]\d{3}/.test(m)?"AM5":"AM4";
+const CPU_GEN_OF = m => { const i = m.match(/i\d-(\d{1,2})\d{3}/); if (i) return i[1]+"-е поколение"; if (/Ultra/.test(m)) return "Core Ultra 200S"; const r = m.match(/Ryzen \d (\d)\d{3}/); return r ? "Ryzen "+r[1]+"000" : ""; };
+const SOCKETS = ["LGA1151","LGA1200","LGA1700","LGA1851","AM4","AM5"];
+
+/* ---- Валюты (демо-курсы к лею; в реальном проекте — из админки или от банка) ---- */
+const CURRENCIES = {MDL:{sym:"лей",ro:"lei",rate:1}, EUR:{sym:"€",rate:19.5}, USD:{sym:"$",rate:17.8}, RON:{sym:"RON",rate:3.9}, UAH:{sym:"₴",rate:0.43}};

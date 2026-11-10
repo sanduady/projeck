@@ -28,10 +28,11 @@ const HINTS = {
   animal:[["cow",/коров/],["poultry",/цыпл|кур|бройл/]],
   platform:[["PlayStation",/playstation|ps\d/],["Xbox",/xbox/],["Nintendo",/switch|nintendo/],["Steam Deck",/steam deck/]],
   cmodel:[["PS5 Slim",/playstation 5 slim|ps5 slim/],["PS5",/playstation 5|ps5/],["PS4 Pro",/playstation 4 pro|ps4 pro/],["PS4",/playstation 4|ps4/],["Xbox Series X",/series x/],["Xbox Series S",/series s/],["Switch OLED",/switch oled/],["Steam Deck OLED",/deck oled/]],
-  atype:[["head",/наушник|airpods/],["speaker",/колонк/],["soundbar",/саундбар/],["vinyl",/проигрыв|винил/],["tractor",/трактор|мтз/],["motoblock",/мотоблок/],["tool",/плуг/]],
-  phtype:[["camera",/eos|body|sony a7|фотоаппарат/],["lens",/объектив/],["action",/gopro|экшн/],["drone",/дрон|dji/]],
-  vram:[["8 ГБ",/rtx 4060|rtx 3070|rx 7600|rx 6600/],["12 ГБ",/rtx 3060|rtx 4070/]],
-  part:[["gpu",/видеокарт/],["mon",/монитор/],["ssd",/ssd/],["ram",/памят/],["psu",/блок питан/]],
+  atype:[["speaker",/колонк|jbl/],["speaker",/колонк/],["soundbar",/саундбар/],["vinyl",/проигрыв|винил/],["tractor",/трактор|мтз/],["motoblock",/мотоблок/],["tool",/плуг/]],
+  phtype:[["mirrorless",/eos r|sony a7|беззеркал/],["dslr",/зеркал/],["lens",/объектив/]],
+  htype:[["tws",/airpods|tws|wf-/],["over",/wh-|marshall|major/]],
+  kmtype:[["kb",/клавиат/],["mouse",/мыш/],["set",/комплект/],["headset",/гарнитур/]],
+  ttype2:[["tires",/шин|резин/],["rims",/диск/]],
   vtype:[["robot",/робот/]], stove:[["gas",/газов/],["oven",/духов/]],
   fish:[["rod",/удилищ|спиннинг/],["reel",/катушк/],["echo",/эхолот/],["lure",/воблер|блёсен|блесен/],["boat",/лодк/]],
   fstyle:[["carp",/карп/],["feeder",/фидер/],["spin",/спиннинг|воблер/]],
@@ -53,8 +54,13 @@ function enrich(a){
       else if (f.k==="floors") at.floors = a.sub===1 ? ri(1,2) : Math.max(at.floor||1, pick([5,9,9,10,12,16]));
       else if (f.k==="floor") at.floor = ri(1,9);
       else if (f.k==="lscreen") at.lscreen = +(t.match(/\b(1[0-7](?:\.\d)?)["″]?/)?.[1] || (a.sub===3?11:15.6));
-      else if (f.k==="ram") at.ram = a.sub===2 ? 16 : 8;
-      else if (f.k==="power" && a.sub===2) at.power = Math.round((at.cc||500)/7);
+      else if (f.k==="ram") at.ram = a.cat==="phones" ? (at.brand==="Apple" ? (/pro/.test(t)?8:6) : pick([4,6,8,8,12])) : a.sub===1 ? 16 : 8;
+      else if (f.k==="power" && a.cat==="auto" && a.sub===2) at.power = Math.round((at.cc||500)/7);
+      else if (f.k==="living") at.living = Math.round((at.area||60)*(.5+R()*.15));
+      else if (f.k==="diag") at.diag = a.sub===1 ? +(t.match(/(1[0-3](?:\.\d)?)["″]/)?.[1] || pick([10.9,11,12.4])) : /max|ultra|plus|\+/.test(t) ? 6.7 : /mini/.test(t) ? 5.4 : at.brand==="Apple" ? 6.1 : pick([6.1,6.4,6.6,6.7]);
+      else if (f.k==="camera") at.camera = at.brand==="Apple" ? (/1[5-7] pro|16|17/.test(t)?48:12) : /ultra/.test(t) ? 200 : pick([12,48,50,50,64,108]);
+      else if (f.k==="bat") at.bat = a.sub===1 ? pick([7600,8000,8720,10090]) : at.brand==="Apple" ? (/max|plus/.test(t)?4400:3300) : pick([4500,5000,5000,5100]);
+      else if (f.k==="cores" || f.k==="threads"){ const sp = CPU_SPEC[(at.cmodel||"").replace(/^(Intel|AMD) /,"")]; if (sp) at[f.k] = f.k==="cores"?sp[0]:sp[1]; }
       else if (f.k==="area") at.area = ri(30,120);
       continue;
     }
@@ -69,9 +75,15 @@ function enrich(a){
   const at = a.attrs;
   if (at.floor!=null && at.floors!=null){ if (at.floor>at.floors) at.floors = at.floor; at.notfirst = at.floor>1; at.notlast = at.floor<at.floors; }
   if (at.storage!=null) at.storage = String(at.storage);
-  if (a.cat==="elec" && a.sub===1 && at.dgpu==null) at.dgpu = /rtx|gtx/.test(t);
-  if (a.cat==="elec" && a.sub===2 && !at.lpurpose) at.lpurpose = /^(GTX 1[06]|RX 5[5-9]0|RX 6600$|Arc A3)/.test(at.gpu||"") ? "office" : "gaming";
-  if (a.cat==="elec" && a.sub===1 && !at.lgpu) at.lgpu = (t.match(/rtx \d{4}/)||[])[0]?.toUpperCase() || "Встроенная графика";
+  if (a.cat==="comp" && a.sub===0 && at.dgpu==null) at.dgpu = /rtx|gtx/.test(t);
+  if (a.cat==="comp" && a.sub===1) at.lpurpose = /^(GTX 1[06]|RX 5[5-9]0|RX 6600$|Arc A3)/.test(at.gpu||"") ? "office" : "gaming";
+  if (a.cat==="comp" && a.sub===1 && at.cpu){ at.ramtype = /7\d{3}|9\d{3}|1[34]\d{3}K|Ultra/.test(at.cpu) ? "DDR5" : "DDR4"; }
+  if (a.cat==="comp" && a.sub===0 && at.lgpu){ at.lgpu = (t.match(/rtx \d{4}/)||[])[0]?.toUpperCase() || "Встроенная графика"; at.dgpu = at.lgpu!=="Встроенная графика"; }
+  if (a.cat==="phones" && [0,1].includes(a.sub)){ at.os = at.brand==="Apple" ? "iOS / iPadOS" : at.brand==="Huawei" ? "HarmonyOS" : /surface/.test(t) ? "Windows" : "Android";
+    if (at.brand==="Apple" && at.sim==="2 SIM") at.sim = "eSIM"; if (/iphone 1[2-7]|galaxy s2|pixel [7-9]/.test(t)) at.g5 = true; }
+  if (a.cat==="comp" && a.sub===3 && at.gmodel && !at.gvendor){ const m=at.gmodel, sp=GPU_SPEC[m]; at.gvendor=GPU_VENDOR_OF(m); at.gseries=GPU_SERIES_OF(m); if(sp){ at.vram=String(sp[0]); at.vtype=sp[1]; at.bus=String(sp[2]); } at.gpower=GPU_POWER_OF(m); }
+  if (a.cat==="comp" && a.sub===3 && at.gmodel){ const sp=GPU_SPEC[at.gmodel]; if (sp){ at.vram=String(sp[0]); at.vtype=sp[1]; at.bus=String(sp[2]); } at.gpower=GPU_POWER_OF(at.gmodel); at.gvendor=GPU_VENDOR_OF(at.gmodel); at.gseries=GPU_SERIES_OF(at.gmodel); }
+  if (a.cat==="real" && at.living!=null && at.area!=null && at.living>=at.area) at.living = Math.round(at.area*.6);
 }
 
 /* ---------- картинки и описания демо-объявлений (до загрузки своих объявлений) ---------- */
@@ -203,12 +215,13 @@ function openAd(id){
     <div class="di">
       <div class="badges">${isDeal(a)?`<span class="deal"><i data-lucide="trending-down"></i>${t("deal")}</span>`:""}${a.delivery?`<span class="dlv"><i data-lucide="truck"></i>${t("delivery")}</span>`:""}</div>
       ${fmtPrice(a)}
+      ${a.price>0?`<div class="mkt conv">≈ ${Object.keys(CURRENCIES).filter(k=>k!==a.cur).map(k=>`${fmtN(mdl(a)/rateOf(k))} ${curS(k)}`).join(" · ")} <small>(${t("demoRate")})</small></div>`:""}
       ${a.val>0&&a.price>0?`<div class="mkt">${t("market")}: ~${fmtN(a.val)} ${curS(a.cur)}</div>`:""}
       <h2>${esc(a.title)}</h2>
       <p class="fulldesc">${esc(a.desc)}</p>
       <dl class="kv">
         <dt>${t("category")}</dt><dd>${c[S.lang]} · ${subName(c,a.sub)}</dd>${attrs}
-        <dt>${t("condition")}</dt><dd>${t(a.cond)}</dd>
+        ${["serv","job","tour","dating","real","free","biz"].includes(a.cat)?"":`<dt>${t("condition")}</dt><dd>${t(a.cond)}</dd>`}
         <dt>${t("location")}</dt><dd>${regName(a.reg)}</dd>
         <dt>${t("posted")}</dt><dd>${fmtDate(a.t)} · ${a.views} ${t("views")}</dd>
         <dt>${t("id")}</dt><dd>${100000+a.id}</dd>
@@ -290,7 +303,7 @@ function drawChat(){
   const a = ADS.find(x=>x.id===CUR_CHAT), s = sellerOf(a), c = CHATS[CUR_CHAT] || {msgs:[]};
   pane.innerHTML = `<div class="chd"><button class="back" id="chatBack"><i data-lucide="arrow-left"></i></button><span class="ava sm">${esc(s.name[0])}</span>
       <div style="min-width:0"><b>${esc(s.name)}</b><div class="ssub">${s.reviews?`★ ${s.rating.toFixed(1)} · `:""}${t("online")}</div></div></div>
-    <button class="cad" data-open="${a.id}"><span class="th" ${cover(a)}>${a.imgs.length?"":`<i data-lucide="${icOf(a)}"></i>`}</span><span><b>${a.price?fmtN(a.price)+" "+curS(a.cur):t("free")}</b><span class="ct">${esc(a.title)}</span></span></button>
+    <button class="cad" data-open="${a.id}"><span class="th" ${cover(a)}>${a.imgs.length?"":`<i data-lucide="${icOf(a)}"></i>`}</span><span><b>${fmtPrice(a).replace(/<[^>]+>/g,"")}</b><span class="ct">${esc(a.title)}</span></span></button>
     <div class="cmsgs" id="cmsgs">${c.msgs.map(m=>`<div class="cm ${m.me?"me":""}"><span>${esc(m.text)}</span><small>${new Date(m.t).toTimeString().slice(0,5)}</small></div>`).join("")}
       <div class="cm typing" id="typing" hidden><span>${t("typing")}</span></div></div>
     <div class="qr">${t("quick").map(q=>`<button data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>
@@ -383,7 +396,7 @@ function openCabinet(tab="my"){
   const tabs = [["my",t("cab_my"),my.length],["orders",t("cab_orders"),ORDERS.length],["saved",t("cab_saved"),SAVED.length],["viewed",t("cab_viewed"),VIEWED.length]];
   let body = "";
   if (tab==="my") body = my.length ? my.map(a=>`<div class="lrow"><span class="th" ${cover(a)} data-open="${a.id}">${a.imgs.length?"":`<i data-lucide="${icOf(a)}"></i>`}</span>
-      <div class="lm" data-open="${a.id}"><b>${esc(a.title)}</b><div>${a.price?fmtN(a.price)+" "+curS(a.cur):t("free")}</div><div class="ssub"><i data-lucide="eye"></i> ${a.views} ${t("viewsN")} · ${fmtDate(a.t)}${a.top?" · TOP":""}</div></div>
+      <div class="lm" data-open="${a.id}"><b>${esc(a.title)}</b><div>${fmtPrice(a).replace(/<[^>]+>/g,"")}</div><div class="ssub"><i data-lucide="eye"></i> ${a.views} ${t("viewsN")} · ${fmtDate(a.t)}${a.top?" · TOP":""}</div></div>
       <div class="la"><button class="chip" data-raise="${a.id}"><i data-lucide="arrow-up"></i>${t("raise")}</button><button class="chip" data-unpub="${a.id}">${t("remove")}</button></div></div>`).join("")
       : `<div class="empty"><i data-lucide="file-plus"></i><p>${t("cab_noMy")}</p><button class="btn l" style="max-width:280px;margin:12px auto 0" id="cabPost"><i data-lucide="plus"></i>${t("post")}</button></div>`;
   if (tab==="orders") body = ORDERS.length ? ORDERS.map(o=>{ const a=ADS.find(x=>x.id===o.adId); if(!a) return ""; const st=orderStage(o);

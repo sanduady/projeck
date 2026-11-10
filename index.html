@@ -51,9 +51,11 @@
     <button class="aside-x" id="asideX" type="button"><i data-lucide="x"></i></button>
     <h3 data-i="price">Цена</h3>
     <div class="row2"><input class="fld" id="pmin" type="number" min="0"><input class="fld" id="pmax" type="number" min="0"></div>
-    <div class="chips" style="margin-top:8px" id="cur"><button class="chip on" data-c="MDL">лей</button><button class="chip" data-c="EUR">€</button></div>
+    <div class="chips" style="margin-top:8px" id="cur"><button class="chip on" data-c="MDL">лей</button><button class="chip" data-c="EUR">€</button><button class="chip" data-c="USD">$</button><button class="chip" data-c="RON">RON</button><button class="chip" data-c="UAH">₴</button></div>
     <h3 data-i="region">Регион</h3>
     <select class="fld" id="region"></select>
+    <h3 data-i="age">Дата публикации</h3>
+    <select class="fld" id="age"><option value="all" data-i="age_all"></option><option value="1" data-i="age_1"></option><option value="3" data-i="age_3"></option><option value="7" data-i="age_7"></option><option value="30" data-i="age_30"></option></select>
     <h3 data-i="cond">Состояние</h3>
     <div class="chips" id="cond"><button class="chip on" data-v="all" data-i="anyN">Любое</button><button class="chip" data-v="new" data-i="new">Новое</button><button class="chip" data-v="used" data-i="used">Б/у</button></div>
     <h3 data-i="more">Дополнительно</h3>
@@ -75,6 +77,7 @@
       <button class="chip mob-filter" id="mobF" style="align-items:center;gap:6px"><i data-lucide="sliders-horizontal"></i><span data-i="filters">Фильтры</span></button>
       <select id="sort">
         <option value="new" data-i="s_new"></option>
+        <option value="rel" data-i="s_rel"></option>
         <option value="cheap" data-i="s_cheap"></option>
         <option value="exp" data-i="s_exp"></option>
         <option value="deal" data-i="s_deal"></option>

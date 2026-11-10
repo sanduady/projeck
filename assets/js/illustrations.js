@@ -186,3 +186,49 @@ DRAW.fishing = () => `<rect x="0" y="196" width="400" height="104" fill="#6fb3d9
   <circle cx="312" cy="176" r="4" fill="#e5484d"/>`;
 const _illCache = {};
 function illCached(key, name, ...args){ return _illCache[key] ||= illustrate(name, ...args); }
+/* ---- дополнительные рисунки для новых разделов ---- */
+Object.assign(DRAW, {
+  chip(c="#2a2d33"){ return `${SH(200,250,120)}<rect x="110" y="70" width="180" height="180" rx="10" fill="#1f8a5b"/>
+    ${[0,1,2,3,4,5,6,7].map(i=>`<rect x="${122+i*21}" y="58" width="8" height="14" fill="#d4a017"/><rect x="${122+i*21}" y="248" width="8" height="14" fill="#d4a017"/><rect x="98" y="${82+i*21}" width="14" height="8" fill="#d4a017"/><rect x="288" y="${82+i*21}" width="14" height="8" fill="#d4a017"/>`).join("")}
+    <rect x="140" y="100" width="120" height="120" rx="8" fill="#c9ced3"/><rect x="150" y="110" width="100" height="100" rx="6" fill="${c}"/><circle cx="160" cy="200" r="4" fill="#d4a017"/>`; },
+  ram(c="#2a2d33"){ return `${SH(200,236,170)}${[0,1].map(k=>`<g transform="translate(0 ${k*58})"><rect x="40" y="100" width="320" height="50" rx="4" fill="${k?shade(c,1.3):c}"/>
+    ${[0,1,2,3,4,5,6,7].map(i=>`<rect x="${56+i*38}" y="108" width="28" height="22" rx="2" fill="#16181d"/>`).join("")}
+    ${Array.from({length:30},(_,i)=>`<rect x="${48+i*10.4}" y="146" width="6" height="8" fill="#d4a017"/>`).join("")}<rect x="40" y="96" width="320" height="6" fill="#e5484d"/></g>`).join("")}`; },
+  monitor(c="#2a2d33"){ return `${SH(200,256,110)}<rect x="40" y="40" width="320" height="190" rx="10" fill="${c}"/><rect x="50" y="50" width="300" height="164" rx="4" fill="#3b82f6"/>
+    <path d="M50 180 Q140 120 200 160 T350 120 L350 214 L50 214Z" fill="#1d4ed8"/><circle cx="290" cy="90" r="18" fill="#fde68a"/><rect x="186" y="230" width="28" height="20" fill="${shade(c,.8)}"/><rect x="140" y="246" width="120" height="10" rx="5" fill="${c}"/>`; },
+  keyboard(c="#2a2d33"){ return `${SH(200,246,170)}<rect x="30" y="120" width="250" height="110" rx="10" fill="${c}"/>
+    ${[0,1,2,3].map(r=>Array.from({length:11},(_,i)=>`<rect x="${40+i*21.6}" y="${130+r*24}" width="17" height="18" rx="3" fill="${shade(c,1.6)}"/>`).join("")).join("")}
+    <rect x="96" y="214" width="110" height="10" rx="3" fill="${shade(c,1.6)}"/><path d="M320 140 q30 0 30 40 v20 q0 30 -30 30 q-30 0 -30 -30 v-20 q0 -40 30 -40z" fill="${c}"/><line x1="320" y1="140" x2="320" y2="172" stroke="${shade(c,1.6)}" stroke-width="3"/>`; },
+  printer(){ return `${SH(200,250,150)}<rect x="130" y="50" width="140" height="70" fill="#fff" stroke="#d6dade" stroke-width="3"/><rect x="60" y="100" width="280" height="110" rx="14" fill="#e9ebee"/><rect x="60" y="150" width="280" height="60" rx="10" fill="#c9ced3"/>
+    <rect x="120" y="190" width="160" height="58" fill="#fff" stroke="#d6dade" stroke-width="3"/><rect x="138" y="204" width="110" height="6" fill="#9aa1a7"/><rect x="138" y="218" width="80" height="6" fill="#9aa1a7"/><circle cx="310" cy="126" r="7" fill="#1f8a5b"/>`; },
+  router(){ return `${SH(200,246,140)}${[130,200,270].map((x,i)=>`<rect x="${x-4}" y="${60+i%2*10}" width="8" height="${100-i%2*10}" rx="4" fill="#2a2d33" transform="rotate(${(i-1)*14} ${x} 160)"/>`).join("")}
+    <rect x="70" y="160" width="260" height="70" rx="16" fill="#f4f6f8" stroke="#d6dade" stroke-width="3"/>${[0,1,2,3,4].map(i=>`<circle cx="${110+i*30}" cy="196" r="6" fill="${i<3?"#22c55e":"#9aa1a7"}"/>`).join("")}
+    <path d="M300 110 a30 30 0 0 1 40 0 M290 96 a48 48 0 0 1 60 0" fill="none" stroke="#3b82f6" stroke-width="6" stroke-linecap="round"/>`; },
+  plane(c="#2f6fd6"){ return `<circle cx="320" cy="70" r="30" fill="#fde68a"/><path d="M40 210 Q120 180 200 196" stroke="#fff" stroke-width="6" fill="none" opacity=".8"/>
+    <g transform="rotate(-12 200 150)"><path d="M70 150 Q70 132 100 130 L320 130 Q352 132 360 150 Q352 168 320 170 L100 170 Q70 168 70 150Z" fill="#f4f6f8"/>
+    <path d="M190 132 L240 60 L262 60 L236 132Z M190 168 L240 240 L262 240 L236 168Z" fill="${c}"/><path d="M80 132 L64 92 L84 92 L112 132Z" fill="${c}"/>
+    ${[0,1,2,3,4,5,6].map(i=>`<circle cx="${150+i*24}" cy="146" r="5" fill="#9ccbf0"/>`).join("")}<path d="M330 140 Q350 142 356 150 L330 150Z" fill="#1f2a4a"/></g>`; },
+  piano(){ return `${SH(200,250,170)}<rect x="30" y="110" width="340" height="110" rx="8" fill="#16181d"/><rect x="40" y="140" width="320" height="70" fill="#fff"/>
+    ${Array.from({length:20},(_,i)=>`<line x1="${40+i*16}" y1="140" x2="${40+i*16}" y2="210" stroke="#c9ced3" stroke-width="2"/>`).join("")}
+    ${Array.from({length:20},(_,i)=>[0,1,3,4,5].includes(i%7)?`<rect x="${51+i*16}" y="140" width="10" height="42" fill="#16181d"/>`:"").join("")}
+    <rect x="60" y="120" width="60" height="10" rx="3" fill="#3b4046"/><circle cx="300" cy="125" r="5" fill="#e5484d"/><rect x="60" y="220" width="10" height="30" fill="#16181d"/><rect x="330" y="220" width="10" height="30" fill="#16181d"/>`; },
+  bouquet(c="#e5484d"){ return `${SH(200,262,90)}<path d="M150 170 L200 262 L250 170Z" fill="#f4e3c3"/><path d="M200 262 L172 170 M200 262 L228 170" stroke="#e2c99a" stroke-width="3"/>
+    ${[[160,120],[200,100],[240,120],[180,150],[222,150],[200,130]].map(([x,y],i)=>`<circle cx="${x}" cy="${y}" r="26" fill="${i%2?shade(c,1.25):c}"/><circle cx="${x}" cy="${y}" r="10" fill="${shade(c,.75)}"/>`).join("")}
+    <path d="M130 150 q-20 -30 10 -40 q10 20 -10 40z M270 150 q20 -30 -10 -40 q-10 20 10 40z" fill="#3aa34d"/>`; },
+  hearts(c="#f43f5e"){ const h=(x,y,s,col)=>`<path transform="translate(${x} ${y}) scale(${s})" d="M0 -10 C-10 -30 -40 -24 -40 0 C-40 22 -12 38 0 50 C12 38 40 22 40 0 C40 -24 10 -30 0 -10Z" fill="${col}"/>`;
+    return `${SH(200,256,110)}${h(160,130,1.9,c)}${h(250,150,1.5,shade(c,1.3))}${h(300,80,.6,"#fda4af")}${h(100,70,.5,"#fda4af")}`; },
+  watch(c="#2a2d33"){ return `${SH(200,256,80)}<rect x="164" y="30" width="72" height="240" rx="20" fill="${shade(c,1.4)}"/><rect x="140" y="90" width="120" height="130" rx="30" fill="${c}"/>
+    <rect x="152" y="102" width="96" height="106" rx="22" fill="#0b0d10"/><text x="200" y="158" text-anchor="middle" font-family="Arial" font-size="30" font-weight="700" fill="#fff">10:09</text>
+    <path d="M168 182 h64" stroke="#22c55e" stroke-width="6" stroke-linecap="round"/><rect x="258" y="130" width="8" height="26" rx="3" fill="${shade(c,1.4)}"/>`; },
+  perfume(c="#c026d3"){ return `${SH(200,256,90)}<rect x="176" y="58" width="48" height="30" rx="6" fill="#d4a017"/><rect x="190" y="84" width="20" height="18" fill="#c9ced3"/>
+    <rect x="130" y="100" width="140" height="150" rx="26" fill="${c}" opacity=".85"/><rect x="146" y="116" width="34" height="110" rx="14" fill="#fff" opacity=".35"/><rect x="170" y="170" width="60" height="24" rx="4" fill="#fff"/>`; },
+  plant(c="#3aa34d"){ return `${SH(200,256,80)}<path d="M150 190 L250 190 L236 254 L164 254Z" fill="#c2703d"/><rect x="144" y="180" width="112" height="16" rx="4" fill="#a35a2b"/>
+    ${[[-40,-70],[40,-70],[0,-100],[-60,-30],[60,-30]].map(([dx,dy],i)=>`<path d="M200 182 Q${200+dx/2} ${182+dy/2-20} ${200+dx} ${182+dy} Q${200+dx*1.2} ${182+dy+30} 200 182Z" fill="${i%2?shade(c,1.2):c}"/>`).join("")}`; },
+  book(c="#2f6fd6"){ return `${SH(200,250,140)}${[[90,c],[150,"#e5484d"],[210,"#f5a524"],[270,"#1f8a5b"]].map(([x,col],i)=>`<rect x="${x}" y="${80+i%2*20}" width="50" height="${160-i%2*20}" rx="4" fill="${col}"/><rect x="${x+8}" y="${110+i%2*20}" width="34" height="6" fill="#fff" opacity=".7"/>`).join("")}`; },
+  dress(c="#f8fafc"){ return `${SH(200,262,110)}<path d="M176 40 L224 40 L232 100 L300 256 L100 256 L168 100Z" fill="${c}" stroke="#d6dade" stroke-width="3"/><path d="M168 100 Q200 116 232 100" fill="none" stroke="#d6dade" stroke-width="4"/>
+    <path d="M176 40 Q200 70 224 40" fill="none" stroke="#d6dade" stroke-width="3"/>${[0,1,2,3,4].map(i=>`<circle cx="${150+i*25}" cy="${200+i%2*14}" r="4" fill="#e9d5ff"/>`).join("")}`; },
+  drum(){ return `${SH(200,256,150)}<ellipse cx="200" cy="200" rx="90" ry="28" fill="#c0392b"/><rect x="110" y="140" width="180" height="60" fill="#c0392b"/><ellipse cx="200" cy="140" rx="90" ry="28" fill="#f4f6f8" stroke="#9aa1a7" stroke-width="4"/>
+    ${[0,1,2,3,4,5].map(i=>`<line x1="${118+i*33}" y1="150" x2="${118+i*33}" y2="214" stroke="#d4a017" stroke-width="4"/>`).join("")}<path d="M90 60 L180 130 M310 60 L220 130" stroke="#d4a017" stroke-width="8" stroke-linecap="round"/>`; },
+  dishes(){ return `${SH(200,250,160)}<ellipse cx="140" cy="200" rx="90" ry="26" fill="#e9ebee"/><path d="M60 170 Q60 230 140 230 Q220 230 220 170Z" fill="#2f6fd6"/><ellipse cx="140" cy="170" rx="80" ry="18" fill="#1f4fd1"/>
+    <path d="M250 110 L330 110 L322 230 L258 230Z" fill="#f4f6f8" stroke="#c9ced3" stroke-width="3"/><path d="M330 140 q30 0 30 30 q0 30 -30 30" fill="none" stroke="#c9ced3" stroke-width="8"/>`; }
+});
