@@ -75,7 +75,7 @@ function localAI(text){
   let cat=null, sub=null; for (const [re,c,sb] of rules) if (re.test(s)){ cat=c; sub=sb; break; }
   let budget=null, cur="MDL";
   const CURR = "(лей|леев|лея|lei|mdl|€|евро|eur|euro)";
-  const m = s.match(new RegExp("(?:за|до|бюджет\\w*|около|в пределах|не дороже|max|p[aâ]n[aă] la|sub|de)\\s*(\\d+(?:[.,]\\d+)?)\\s*(тыс\\w*|k|к|mii)?\\s*"+CURR+"?")) || s.match(new RegExp("(\\d{3,}|\\d+\\s*(?:тыс\\w*|k))\\s*(тыс\\w*|k)?\\s*"+CURR));
+  const m = s.match(new RegExp("(?:за|до|бюджет[а-яёa-z]*|около|в пределах|не дороже|max|p[aâ]n[aă] la|sub|de)\\s*(\\d+(?:[.,]\\d+)?)\\s*(тыс[а-яёa-z]*|k|к|mii)?\\s*"+CURR+"?")) || s.match(new RegExp("(\\d{3,}|\\d+\\s*(?:тыс[а-яёa-z]*|k))\\s*(тыс[а-яёa-z]*|k)?\\s*"+CURR));
   if (m){ budget = parseFloat(m[1].replace(",", ".")) * (m[2]||/тыс|k/.test(m[1])?1000:1); if (/€|евро|eur/.test(m[3]||"")) cur="EUR"; }
   if (budget && !(m&&m[3]) && (cat==="auto"||cat==="real"&&sub!==3) && budget<200000) cur="EUR";
   if (cat==="real" && sub===0 && budget && cur==="EUR" && budget<=3000) sub = 2; // «квартира до 500 евро» — это аренда
@@ -84,20 +84,25 @@ function localAI(text){
   if (/механик|manual/.test(s)) attrs.gearbox="manual";
   const fuels = [["diesel",/дизел|motorin/],["petrol",/бензин(?!\/)|benzin/],["hybrid",/гибрид|hibrid/],["electric",/электромоб|электро(?!вел)|electric/],["gas",/газ\b|газ\/|metan|propan/]].filter(([,re])=>re.test(s)).map(x=>x[0]);
   if (fuels.length && cat==="auto") attrs.fuel = fuels;
-  if (/полн\w* привод|4x4|4х4|awd|quattro|xdrive|4matic/.test(s)) attrs.drive="awd";
-  const ROOMW = [["1",/(?<![а-я])(1|одн[оау]\w*|однушк\w*)[\s-]*(комн|кімн|camer)|однушк/],["2",/(?<![а-я])(2|дв[уе]\w*|двушк\w*)[\s-]*(комн|кімн|camer)|двушк|две комнаты/],["3",/(?<![а-я])(3|тр[её]х\w*|три)[\s-]*(комн|camer)|трёшк|трешк/],["0",/студи|garsonier/]];
+  if (/полн[а-яёa-z]* привод|4x4|4х4|awd|quattro|xdrive|4matic/.test(s)) attrs.drive="awd";
+  const ROOMW = [["1",/(?<![а-я])(1|одн[оау][а-яёa-z]*|однушк[а-яёa-z]*)[\s-]*(комн|кімн|camer)|однушк/],["2",/(?<![а-я])(2|дв[уе][а-яёa-z]*|двушк[а-яёa-z]*)[\s-]*(комн|кімн|camer)|двушк|две комнаты/],["3",/(?<![а-я])(3|тр[её]х[а-яёa-z]*|три)[\s-]*(комн|camer)|трёшк|трешк/],["0",/студи|garsonier/]];
   if (cat==="real"){ const rr = ROOMW.filter(([,re])=>re.test(s)).map(x=>x[0]); if (rr.length) attrs.rooms = rr; }
   for (const sec of ["Центр","Ботаника","Рышкановка","Чеканы","Буюканы","Телецентр","Скулянка"]) if (s.includes(sec.toLowerCase().slice(0,5))) attrs.sector=sec;
-  const CITY = [["chi",/кишин|chisin|chișin/],["bal",/бельц|balti|bălți/],["cah",/кагул|cahul/],["com",/комрат|comrat/],["ung",/унген|ungheni/],["orh",/орхе|orhei/],["sor",/сорок|soroca/],["edi",/единц|edineț|edinet/],["hin",/хынчешт|hîncești|hincesti/],["str",/страшен|strășeni|straseni/],["tir",/тирасп|tiraspol/]];
-  const city = (CITY.find(([,re])=>re.test(s))||[])[0] || null;
+  const sn = norm(s);
+  const CITY = REG_DB.map(r=>[r[0], new RegExp("(?<![a-zа-я])(" + norm(r[1]).slice(0, Math.min(5, norm(r[1]).length-1)) + "|" + norm(r[2]).replace(/[^a-z]/g,"").slice(0,5) + ")")]);
+  const city = (CITY.find(([,re])=>re.test(sn))||[])[0] || null;
   const RUMODEL = {"камри":"Camry","королл":"Corolla","рав4":"RAV4","гольф":"Golf","пассат":"Passat","туран":"Touran","тигуан":"Tiguan","октави":"Octavia","суперб":"Superb","логан":"Logan","дастер":"Duster","сандеро":"Sandero","меган":"Megane","туссан":"Tucson","спортейдж":"Sportage","фокус":"Focus","астр":"Astra","приус":"Prius","икс5":"X5","х5":"X5","икс3":"X3","х3":"X3","тройк":"3 Series","пятёрк":"5 Series","пятерк":"5 Series"};
-  const brand = ["apple","iphone","samsung","xiaomi","google","lenovo","asus","acer","dell","hp","audi","bmw","mercedes","toyota","volkswagen","vw","skoda","dacia","renault","hyundai","kia","ford","opel","lexus","tesla","бмв","мерседес","тойот","фольксваген","шкод","дачи","ауди"].find(b=>new RegExp("(?<![a-zа-я])"+b).test(s));
-  const BR_RU = {"бмв":"bmw","мерседес":"mercedes","тойот":"toyota","фольксваген":"volkswagen","vw":"volkswagen","шкод":"skoda","дачи":"dacia","ауди":"audi"};
+  const BR_RU = {"бмв":"bmw","мерседес":"mercedes","мерс":"mercedes","тойот":"toyota","фольксваген":"volkswagen","vw":"volkswagen","шкод":"skoda","дачи":"dacia","ауди":"audi","лада":"lada","ваз":"lada","мазд":"mazda","хонд":"honda","ниссан":"nissan","митсубиси":"mitsubishi","мицубиси":"mitsubishi","пежо":"peugeot","ситроен":"citroen","вольво":"volvo","порше":"porsche","субару":"subaru","сузуки":"suzuki","фиат":"fiat","шевроле":"chevrolet","лексус":"lexus","тесл":"tesla","хендай":"hyundai","хюндай":"hyundai","хундай":"hyundai","киа":"kia","форд":"ford","опел":"opel","рено":"renault","ленд ровер":"land rover","рендж ровер":"land rover","джип":"jeep","инфинити":"infiniti","сеат":"seat","газ":"газ","уаз":"уаз","деу":"daewoo","джили":"geely","чери":"chery","хавал":"haval","бид":"byd"};
+  const PH_BR = ["apple","samsung","xiaomi","redmi","poco","google","pixel","oneplus","huawei","honor","motorola","nothing","oppo","realme","vivo","sony","nokia","lenovo","asus","acer","dell","hp","msi"];
+  const carKeys = [...CAR_BRANDS.map(b=>b.toLowerCase().split(" (")[0]), ...Object.keys(BR_RU)].sort((a,b)=>b.length-a.length);
+  const brand = (cat!=="elec" ? carKeys.find(b=>new RegExp("(?<![a-zа-я])"+b.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).test(s)) : null) || ["iphone",...PH_BR].find(b=>new RegExp("(?<![a-zа-я])"+b).test(s));
   let q = "";
   if (brand==="iphone"){ cat=cat||"elec"; sub=sub??0; attrs.brand="Apple"; }
   if (brand && brand!=="iphone"){
-    const bkey = BR_RU[brand] || brand;
+    let bkey = BR_RU[brand] || brand; if (["redmi","poco"].includes(bkey)) bkey="xiaomi"; if (bkey==="pixel") bkey="google";
     if (!cat && CAR_BRANDS.some(b=>b.toLowerCase().startsWith(bkey))){ cat="auto"; sub=0; }
+    if (!cat && Object.keys(PHONE_DB).some(b=>b.toLowerCase()===bkey)){ cat="elec"; sub=0; }
+    if (!cat && ["lenovo","asus","acer","dell","hp","msi"].includes(bkey)){ cat="elec"; sub=1; }
     if (cat){ const bf = catOf(cat).fields.find(f=>f.k==="brand" && (!f.only||f.only.includes(sub)));
       const o = bf && fieldOpts(bf).find(o=>String(optV(o)).toLowerCase().startsWith(bkey)); if (o) attrs.brand=optV(o); }
   }
@@ -109,7 +114,11 @@ function localAI(text){
     if (mm){ attrs.model = mm; if (!attrs.brand) attrs.brand = CAR_BRANDS.find(b=>CAR_MODELS[b].includes(mm));
       const g = CAR_DB[attrs.brand][mm].find(([gg])=>new RegExp("(?<![a-z0-9])"+gg.toLowerCase()+"(?![a-z0-9])").test(s)); if (g) attrs.gen = g[0]; }
   }
-  if (cat==="elec" && sub===0 && attrs.brand && PHONE_DB[attrs.brand]){ const pm = PHONE_DB[attrs.brand].slice().sort((a,b)=>b.length-a.length).find(m=>s.includes(m.toLowerCase())); if (pm) attrs.model = pm; }
+  if (cat==="elec" && sub===0 && attrs.brand && PHONE_DB[attrs.brand]){ const pm = PHONE_DB[attrs.brand].slice().sort((a,b)=>b.length-a.length).find(m=>{ const ml=m.toLowerCase(); return s.includes(ml) || s.includes(ml.replace(/^(galaxy|pixel|redmi|poco|xiaomi|oneplus|honor|moto) /,"")); }); if (pm) attrs.model = pm; }
+  if (!cat && /(?<![a-z0-9])(rtx|gtx|rx|arc)\s?\d{3,4}/.test(s)){ cat="elec"; sub=/видеокарт/.test(s)?8:2; }
+  if (cat==="elec" && (sub===2||sub===8)){
+    const g = GPU_ALL.slice().sort((a,b)=>b.length-a.length).find(x=>s.includes(x.toLowerCase())); if (g) attrs.gpu = g;
+    const cp = CPU_ALL.slice().sort((a,b)=>b.length-a.length).find(x=>{ const l=x.toLowerCase().replace(/^(intel|amd) /,""); return s.includes(l) || s.includes(l.replace(/^core /,"")); }); if (cp) attrs.cpu = cp; }
   if (cat==="serv"){ const SV = [["stype","elec",/электрик|electrician|electrician/],["stype","plumb",/сантехник/],["stype","tile",/плиточ|плитк/],["stype","turnkey",/под ключ/],["ttype","move",/переезд|грузчик/],["ttype","evac",/эвакуатор/],["subject","en",/англ/],["subject","ro",/румын/],["subject","math",/матем/]];
     SV.filter(([,,re])=>re.test(s)).forEach(([k,v])=>attrs[k]=v); }
   if (cat==="sport" && sub===6){ if (/карп/.test(s)) attrs.fstyle="carp"; if (/удочк|удилищ/.test(s)) attrs.fish="rod"; }

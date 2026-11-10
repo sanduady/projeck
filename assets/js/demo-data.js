@@ -13,21 +13,21 @@ const NAMES = ["Андрей","Мария","Ion","Елена","Victor","Ната
 let ADS = [], uid = 1;
 function add(o){
   const cond = o.cond || (R()<.3?"new":"used");
-  ADS.push(Object.assign({id:uid++, cur:"MDL", val:0, reg: R()<.55?"chi":REG[2+Math.floor(R()*(REG.length-2))][0],
+  ADS.push(Object.assign({id:uid++, cur:"MDL", val:0, reg: R()<.5?"chi": R()<.6 ? REG[2+Math.floor(R()*9)][0] : REG[2+Math.floor(R()*(REG.length-2))][0],
     cond, priv:R()<.72, photos: R()<.9?ri(1,14):0, t: NOW - Math.floor(R()*14*864e5), views:ri(5,3200), top:R()<.06,
     desc:pick(DESCS[cond]), name:pick(NAMES), phone:"+373 6"+ri(0,9)+" "+ri(100,999)+" "+ri(100,999), imgs:[], attrs:{}}, o, {cond}));
 }
 // --- Transport
 (function(){
-  const PREM=["Audi","BMW","Mercedes-Benz","Lexus","Tesla"], BUDGET=["Dacia","Renault","Opel"];
-  const SUVS=/^(X3|X5|Q5|Q7|RAV4|Tiguan|Kodiaq|Duster|Tucson|Santa Fe|Sportage|Sorento|Kuga|RX|NX|Model Y|GLC)$/, HATCH=/^(Golf|Fabia|Clio|Megane|Ceed|Focus|Astra|1 Series|A-Class|Sandero|Prius)$/, VANS=/^(Touran|Zafira|Kangoo)$/, WAG=/^(Passat|Octavia|Superb|A4|A6|Insignia|Mondeo)$/;
-  const BW = ["Toyota","Toyota","Volkswagen","Volkswagen","BMW","BMW","Mercedes-Benz","Skoda","Skoda","Dacia","Dacia","Renault","Hyundai","Kia","Ford","Opel","Audi","Lexus","Tesla"];
-  for(let i=0;i<120;i++){
-    const b = pick(BW), m = pick(CAR_MODELS[b]), gens = CAR_DB[b][m], gi = Math.floor(R()*gens.length), [g, yrs] = gens[gi];
-    const y0 = Math.max(2005, +yrs.slice(0,4)), y1 = Math.min(2024, yrs.endsWith("–") ? 2024 : +yrs.slice(-4)), year = ri(y0, Math.max(y0,y1));
-    const cls = PREM.includes(b) ? "prem" : BUDGET.includes(b) ? "bud" : "mid";
-    const body = SUVS.test(m) ? "suv" : VANS.test(m) ? "van" : HATCH.test(m) ? (R()<.2?"wagon":"hatch") : WAG.test(m) ? (R()<.5?"wagon":"sedan") : "sedan";
-    const fuel = b==="Tesla" ? "electric" : (b==="Toyota"||b==="Lexus") && R()<.55 ? "hybrid" : cls==="bud" && R()<.35 ? "gas" : R()<.5 ? "diesel" : "petrol";
+  const POPULAR=["Toyota","Volkswagen","BMW","Mercedes-Benz","Skoda","Dacia","Renault","Hyundai","Kia","Ford","Opel","Audi","Lexus","Mazda","Honda","Nissan","Peugeot","Mitsubishi","Volvo","Lada (ВАЗ)"];
+  const BW = [...CAR_BRANDS, ...POPULAR, ...POPULAR, ...POPULAR];
+  for(let i=0;i<260;i++){
+    const b = pick(BW), m = pick(CAR_MODELS[b]), gens = CAR_DB[b][m], gi = Math.floor(R()*gens.length), [g, yrs] = gens.length ? gens[gi] : [null, "2005–2024"];
+    const old = /ГАЗ|УАЗ|ЗАЗ|Москвич|Daewoo|Rover|Saab/.test(b) || /^(2101|2104|2105|2106|2107|2109|21099|2110|2112|2114|2115|24 Волга|3110|31105|412|2140|2141|469)$/.test(m);
+    const y0 = Math.max(old?1985:2005, +yrs.slice(0,4)), y1 = Math.min(2024, yrs.endsWith("–") ? 2024 : +yrs.slice(-4)), year = ri(y0, Math.max(y0,y1));
+    const cls = CAR_CLASS(b);
+    const body = SUV_RE.test(m) ? "suv" : VAN_RE.test(m) ? "van" : HATCH_RE.test(m) ? (R()<.15?"wagon":"hatch") : /Passat|Octavia|Superb|A4|A6|Insignia|Mondeo|V\d0|Avensis|Laguna|508|Outback|Legacy|Largus/.test(m) ? (R()<.5?"wagon":"sedan") : /Mustang|Camaro|Challenger|911|4 Series|TT|MX-5/.test(m) ? "coupe" : /Hilux|L200|Navara|Ranger|RAM|Wingle|Poer/.test(m) ? "pickup" : "sedan";
+    const fuel = (b==="Tesla"||/^(Leaf|i3|iX|e-tron|Zoe|Spring|ID\.3|ID\.4|Enyaq|Born|EV6|Taycan|Atto 3|Dolphin|Han|Seal|MG4|Bolt)$/.test(m)) ? "electric" : (b==="Toyota"||b==="Lexus") && R()<.55 ? "hybrid" : cls==="bud" && R()<.35 ? "gas" : R()<.5 ? "diesel" : "petrol";
     const engine = fuel==="electric" ? null : pick(cls==="prem" ? [2.0,2.0,2.5,3.0] : cls==="bud" ? [0.9,1.2,1.4,1.5,1.6] : [1.4,1.5,1.6,2.0,2.0,2.5]);
     const power = fuel==="electric" ? pick([283,351,460]) : Math.round(engine*(fuel==="diesel"?68:76)*(.85+R()*.3)*(cls==="prem"?1.35:1));
     const gearbox = fuel==="electric" ? "auto" : fuel==="hybrid" ? "cvt" : cls==="prem" ? (R()<.92?"auto":"manual") : pick(["manual","manual","auto","robot","cvt"]);
@@ -40,8 +40,8 @@ function add(o){
     const nOpts = Math.min(CAR_OPTS.length, 2 + Math.floor((year-2004)/3) + (cls==="prem"?3:0));
     const opts = take(CAR_OPTS.map(o=>o[0]), nOpts);
     const fuelL = lbl(FUEL,fuel).toLowerCase(), gearL = lbl(GEAR,gearbox).toLowerCase();
-    add({cat:"auto",sub:0,title:`${b} ${m} ${g}, ${year}, ${engine?engine.toFixed(1)+" ":""}${fuelL}, ${gearL}${damage!=="ok"?(damage==="dmg"?", после ДТП":", на запчасти"):""}`,cur:"EUR",price,val,cond:"used",
-      attrs:{brand:b,model:m,gen:g,year,mileage,fuel,...(engine?{engine}:{}),power,gearbox,drive,body,color:pick(COLORS)[0],wheel:R()<.97?"left":"right",damage,
+    add({cat:"auto",sub:0,title:`${b} ${m}${g?" "+g:""}, ${year}, ${engine?engine.toFixed(1)+" ":""}${fuelL}, ${gearL}${damage!=="ok"?(damage==="dmg"?", после ДТП":", на запчасти"):""}`,cur:"EUR",price,val,cond:"used",
+      attrs:{brand:b,model:m,...(g?{gen:g}:{}),year,mileage,fuel,...(engine?{engine}:{}),power,gearbox,drive,body,color:pick(COLORS)[0],wheel:R()<.97?"left":"right",damage,
         owners:pick(["1","2","2","3"]),reg:R()<.8?"md":R()<.6?"foreign":R()<.6?"tr":"none",trade:R()<.25,credit:cls!=="bud"&&R()<.15,opts}});
   }
   const trucks=[["Mercedes-Benz","Sprinter",14000],["MAN","TGX 18.440",32000],["DAF","XF 480",35000],["Iveco","Daily",12000],["Volkswagen","Crafter",15000],["Ford","Transit",11000]];
@@ -78,13 +78,16 @@ function add(o){
 })();
 // --- Electronics
 (function(){
-  const PH_BASE={"iPhone 12":6000,"iPhone 13":8200,"iPhone 14":10500,"iPhone 15":13500,"iPhone 15 Pro":17500,"iPhone 16 Pro":23000,"Galaxy A35":4600,"Galaxy A55":6200,"Galaxy S23":9200,"Galaxy S24":12500,"Galaxy S24 Ultra":19000,
-    "Redmi Note 13":3500,"Redmi Note 13 Pro":5200,"Xiaomi 14T":9800,"Pixel 8":9000,"Pixel 8 Pro":12500};
-  const PH_RAM={"iPhone 12":4,"iPhone 13":4,"iPhone 14":6,"iPhone 15":6,"iPhone 15 Pro":8,"iPhone 16 Pro":8,"Galaxy S24 Ultra":12,"Xiaomi 14T":12,"Pixel 8 Pro":12,"Redmi Note 13":6};
-  for(let i=0;i<40;i++){ const b=pick(Object.keys(PHONE_DB)), m=pick(PHONE_DB[b]), st=pick([128,128,256,256,512]), cond=R()<.3?"new":"used";
-    const val=r100(PH_BASE[m]*(st===256?1.12:st===512?1.3:1)*(cond==="new"?1.08:.78));
-    add({cat:"elec",sub:0,title:`${b==="Apple"||b==="Xiaomi"&&m.startsWith("Xiaomi")?"":b+" "}${m} ${st}GB${cond==="new"?", новый":""}`,price:r100(val*(.86+R()*.3)),val,cond,
-      attrs:{brand:b,model:m,ram:PH_RAM[m]||8,storage:String(st)}});}
+  const TIER={"Apple":17000,"Samsung":12000,"Google":10000,"Xiaomi":7000,"OnePlus":9000,"Huawei":8000,"Honor":7000,"Motorola":5500,"Nothing":7000,"Oppo":6000,"Realme":5000,"Vivo":5500,"Sony":9000,"Nokia":3000};
+  const phonePrice = (b,m) => { const list=PHONE_DB[b], i=list.indexOf(m), age=.45+1.0*i/Math.max(1,list.length-1);
+    const k = /Ultra|Pro Max|Fold/.test(m)?1.6 : /Pro|Plus|Flip|Air/.test(m)?1.3 : /mini|SE|16e|FE|Lite|\ba\b|\d+a$|Redmi \d|C\d|A1|A2|A3|G\d/.test(m)?.7 : 1;
+    return Math.round(TIER[b]*age*k/100)*100; };
+  const PH_RAM = m => /Ultra|Pro Max|Fold|Pro/.test(m) ? pick([8,12]) : pick([4,6,8]);
+  const PHW = [...Object.keys(PHONE_DB), "Apple","Apple","Apple","Samsung","Samsung","Xiaomi","Xiaomi"];
+  for(let i=0;i<90;i++){ const b=pick(PHW), m=pick(PHONE_DB[b]), st=pick([64,128,128,256,256,512]), cond=R()<.25?"new":"used";
+    const val=r100(phonePrice(b,m)*(st===256?1.12:st===512?1.3:st===64?.85:1)*(cond==="new"?1.08:.78));
+    add({cat:"elec",sub:0,title:`${b==="Apple"||m.startsWith(b)||/^(Redmi|POCO|Galaxy|Pixel|Xperia|Moto|Nord)/.test(m)?"":b+" "}${/^Galaxy|^Pixel/.test(m)?b+" ":""}${m} ${st}GB${cond==="new"?", новый":""}`,price:r100(val*(.86+R()*.3)),val,cond,
+      attrs:{brand:b,model:m,ram:PH_RAM(m),storage:String(st)}});}
   const laps=[["Apple","MacBook Air 13 M2",16500,8,256,"Apple M2"],["Apple","MacBook Air 15 M3",22500,8,512,"Apple M3"],["Apple","MacBook Pro 14 M3 Pro",34000,18,512,"Apple M3 Pro"],
    ["Lenovo","ThinkPad T14 Gen 3",11500,16,512,"Intel Core i5-1245U"],["Lenovo","Legion 5 RTX 4060",21000,16,1000,"AMD Ryzen 7 7840HS"],["Lenovo","IdeaPad 5",9500,16,512,"AMD Ryzen 5 7530U"],
    ["ASUS","ROG Strix G16 RTX 4070",28000,16,1000,"Intel Core i7-13650HX"],["ASUS","TUF Gaming F15 RTX 3050",13000,16,512,"Intel Core i5-11400H"],["ASUS","Zenbook 14 OLED",15500,16,512,"Intel Core Ultra 5"],
@@ -94,9 +97,11 @@ function add(o){
   // PCs — главный полигон для ИИ
   const cpuV={"Intel Core i3-12100F":1500,"AMD Ryzen 5 5600":2000,"Intel Core i5-12400F":2300,"AMD Ryzen 5 7600":3600,"Intel Core i5-13600K":5000,"AMD Ryzen 7 5800X3D":5600,"Intel Core i7-13700K":7000,"AMD Ryzen 7 7800X3D":7600,"Intel Core i9-13900K":9800};
   const gpuV={"GTX 1660 Super":2600,"RX 6600":3500,"RTX 3060":4500,"RX 7600":4800,"RTX 4060":5800,"RTX 3070":6400,"RTX 4060 Ti":7600,"RX 7800 XT":9600,"RTX 4070":10800,"RTX 4070 Super":12400,"RTX 4080 Super":19500};
+  const PC_CPU=["Intel Core i3-12100F","AMD Ryzen 5 5600","Intel Core i5-12400F","AMD Ryzen 5 7600","Intel Core i5-13600K","AMD Ryzen 7 5800X3D","Intel Core i7-13700K","AMD Ryzen 7 7800X3D","Intel Core i9-13900K"];
+  const PC_GPU=["GTX 1660 Super","RX 6600","RTX 3060","RX 7600","RTX 4060","RTX 3070","RTX 4060 Ti","RX 7800 XT","RTX 4070","RTX 4070 Super","RTX 4080 Super"];
   const tiers=[[0,3,0,3],[1,5,1,5],[2,6,3,7],[3,7,4,9],[4,8,6,10]];
   for(let i=0;i<46;i++){
-    const tr=pick(tiers), cpu=CPU[ri(tr[0],tr[1])], gpu=GPU[ri(tr[2],tr[3])];
+    const tr=pick(tiers), cpu=PC_CPU[ri(tr[0],tr[1])], gpu=PC_GPU[ri(tr[2],tr[3])];
     const ram=pick([16,16,32,32,64]), storage=pick([512,1000,1000,2000]), cond=R()<.25?"new":"used";
     const val=r100((cpuV[cpu]+gpuV[gpu]+ram*55+storage*1.1+3200)*(cond==="new"?1.08:.8));
     const price=r100(val*(.78+R()*.42));

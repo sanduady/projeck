@@ -1,10 +1,6 @@
 /* Project — каталог: регионы, категории, подкатегории, атрибуты для фильтров */
 const RATE = 19.5; // лей за 1 € (демо-курс)
-const REG = [
- ["all","Вся Молдова","Toată Moldova"],["chi","Кишинёв","Chișinău"],["bal","Бельцы","Bălți"],["cah","Кагул","Cahul"],
- ["com","Комрат","Comrat"],["ung","Унгены","Ungheni"],["orh","Орхей","Orhei"],["sor","Сороки","Soroca"],
- ["edi","Единцы","Edineț"],["hin","Хынчешты","Hîncești"],["str","Страшены","Strășeni"],["tir","Тирасполь","Tiraspol"]
-];
+const REG = [["all","Вся Молдова","Toată Moldova"], ...REG_DB.map(r=>r.slice(0,3))];
 /* Поле фильтра:
    k — ключ; ru/ro — подпись; t — тип: sel (список), multi (несколько вариантов), rng (диапазон), bool (да/нет), color (цвета);
    opts — варианты: "значение" или [значение, ru, ro]; only — номера подкатегорий; u — единица; g — группа;
@@ -15,28 +11,6 @@ const GROUPS = {main:["Основное","Principal"], tech:["Двигатель
   state:["Состояние и документы","Stare și acte"], house:["Дом и удобства","Casă și facilități"], opts:["Опции и комплектация","Opțiuni și dotări"], terms:["Условия","Condiții"]};
 const YN = (k,ru,ro,g,only,p=.5) => ({k,ru,ro,t:"bool",g,only,p});
 
-/* ---- автомобили: марка → модель → поколение (годы выпуска) ---- */
-const CAR_DB = {
- "Audi":{"A4":[["B8","2007–2015"],["B9","2015–"]],"A6":[["C6","2004–2011"],["C7","2011–2018"],["C8","2018–"]],"Q5":[["8R","2008–2017"],["FY","2017–"]],"Q7":[["4L","2005–2015"],["4M","2015–"]]},
- "BMW":{"1 Series":[["F20","2011–2019"],["F40","2019–"]],"3 Series":[["E90","2005–2011"],["F30","2012–2019"],["G20","2019–"]],"5 Series":[["E60","2003–2010"],["F10","2010–2016"],["G30","2017–2023"]],
-   "X3":[["F25","2010–2017"],["G01","2017–"]],"X5":[["E70","2006–2013"],["F15","2013–2018"],["G05","2018–"]]},
- "Mercedes-Benz":{"A-Class":[["W176","2012–2018"],["W177","2018–"]],"C-Class":[["W204","2007–2014"],["W205","2014–2021"],["W206","2021–"]],"E-Class":[["W211","2002–2009"],["W212","2009–2016"],["W213","2016–2023"]],"GLC":[["X253","2015–2022"],["X254","2022–"]]},
- "Toyota":{"Camry":[["XV40","2006–2011"],["XV50","2011–2017"],["XV70","2017–"]],"Corolla":[["E150","2006–2013"],["E170","2013–2019"],["E210","2019–"]],"RAV4":[["XA30","2005–2012"],["XA40","2012–2018"],["XA50","2018–"]],"Prius":[["XW30","2009–2015"],["XW50","2015–2022"]]},
- "Volkswagen":{"Golf":[["Mk6","2008–2012"],["Mk7","2012–2019"],["Mk8","2019–"]],"Passat":[["B6","2005–2010"],["B7","2010–2014"],["B8","2014–2023"]],"Touran":[["1T","2003–2015"],["5T","2015–"]],"Tiguan":[["I","2007–2016"],["II","2016–"]]},
- "Skoda":{"Octavia":[["A5","2004–2013"],["A7","2013–2020"],["A8","2020–"]],"Superb":[["B6","2008–2015"],["B8","2015–2023"]],"Fabia":[["II","2007–2014"],["III","2014–2021"]],"Kodiaq":[["I","2016–"]]},
- "Dacia":{"Logan":[["I","2004–2012"],["II","2012–2020"],["III","2020–"]],"Duster":[["I","2010–2017"],["II","2017–2023"]],"Sandero":[["II","2012–2020"],["III","2020–"]]},
- "Renault":{"Megane":[["III","2008–2016"],["IV","2016–"]],"Clio":[["IV","2012–2019"],["V","2019–"]],"Kangoo":[["II","2008–2021"]]},
- "Hyundai":{"Tucson":[["TL","2015–2020"],["NX4","2020–"]],"Elantra":[["MD","2010–2015"],["AD","2015–2020"]],"Santa Fe":[["DM","2012–2018"],["TM","2018–"]]},
- "Kia":{"Sportage":[["SL","2010–2015"],["QL","2015–2021"],["NQ5","2021–"]],"Ceed":[["JD","2012–2018"],["CD","2018–"]],"Sorento":[["UM","2014–2020"]]},
- "Ford":{"Focus":[["II","2004–2011"],["III","2011–2018"],["IV","2018–"]],"Mondeo":[["IV","2007–2014"],["V","2014–2022"]],"Kuga":[["II","2012–2019"],["III","2019–"]]},
- "Opel":{"Astra":[["H","2004–2014"],["J","2009–2015"],["K","2015–2021"]],"Insignia":[["A","2008–2017"],["B","2017–"]],"Zafira":[["B","2005–2014"],["C","2011–2019"]]},
- "Lexus":{"RX":[["AL10","2008–2015"],["AL20","2015–2022"]],"NX":[["AZ10","2014–2021"]],"ES":[["XV60","2012–2018"]]},
- "Tesla":{"Model 3":[["I","2017–"]],"Model Y":[["I","2020–"]]}
-};
-const CAR_BRANDS = Object.keys(CAR_DB);
-const CAR_MODELS = Object.fromEntries(CAR_BRANDS.map(b=>[b,Object.keys(CAR_DB[b])]));
-const CAR_GENS = {}; CAR_BRANDS.forEach(b=>Object.entries(CAR_DB[b]).forEach(([m,gs])=>CAR_GENS[m]=gs.map(([g,y])=>[g,`${g} (${y})`,`${g} (${y})`])));
-
 const FUEL=[["petrol","Бензин","Benzină"],["diesel","Дизель","Motorină"],["gas","Газ/бензин","Gaz/benzină"],["hybrid","Гибрид","Hibrid"],["electric","Электро","Electric"]];
 const GEAR=[["manual","Механика","Manuală"],["auto","Автомат","Automată"],["robot","Робот","Robotizată"],["cvt","Вариатор","Variator"]];
 const DRIVE=[["fwd","Передний","Față"],["rwd","Задний","Spate"],["awd","Полный","Integrală"]];
@@ -46,15 +20,10 @@ const CAR_OPTS=[["ac","Кондиционер","Aer condiționat"],["climate","�
 const RSTATE=[["euro","Евроремонт","Euroreparație"],["design","Дизайнерский ремонт","Design individual"],["cosm","Косметический","Cosmetică"],["white","Белый вариант","Variantă albă"],["grey","Серый вариант","Variantă sură"],["needs","Требует ремонта","Necesită reparație"]];
 const BUILD=[["new","Новострой","Bloc nou"],["old","Вторичка","Secundar"]];
 const WALLS=[["brick","Кирпич","Cărămidă"],["kotelets","Котелец","Cotileț"],["panel","Панель","Panou"],["monolith","Монолит","Monolit"],["block","Блоки","Blocuri"]];
-const SECTORS=[["Центр","Центр","Centru"],["Ботаника","Ботаника","Botanica"],["Рышкановка","Рышкановка","Râșcani"],["Чеканы","Чеканы","Ciocana"],["Буюканы","Буюканы","Buiucani"],["Телецентр","Телецентр","Telecentru"],["Скулянка","Скулянка","Sculeni"],["Пригород","Пригород","Suburbie"]];
-const CPU=["Intel Core i3-12100F","AMD Ryzen 5 5600","Intel Core i5-12400F","AMD Ryzen 5 7600","Intel Core i5-13600K","AMD Ryzen 7 5800X3D","Intel Core i7-13700K","AMD Ryzen 7 7800X3D","Intel Core i9-13900K"];
-const GPU=["GTX 1660 Super","RX 6600","RTX 3060","RX 7600","RTX 4060","RTX 3070","RTX 4060 Ti","RX 7800 XT","RTX 4070","RTX 4070 Super","RTX 4080 Super"];
-const PHONE_DB = {"Apple":["iPhone 12","iPhone 13","iPhone 14","iPhone 14 Pro","iPhone 15","iPhone 15 Pro","iPhone 16 Pro"],"Samsung":["Galaxy A35","Galaxy A55","Galaxy S23","Galaxy S24","Galaxy S24 Ultra"],"Xiaomi":["Redmi Note 13","Redmi Note 13 Pro","Xiaomi 14T"],"Google":["Pixel 8","Pixel 8 Pro"]};
-const LAPTOP_CPU=[["i3","Intel Core i3","Intel Core i3"],["i5","Intel Core i5","Intel Core i5"],["i7","Intel Core i7","Intel Core i7"],["ultra","Intel Core Ultra","Intel Core Ultra"],["r5","AMD Ryzen 5","AMD Ryzen 5"],["r7","AMD Ryzen 7","AMD Ryzen 7"],["m2","Apple M2","Apple M2"],["m3","Apple M3 / M3 Pro","Apple M3 / M3 Pro"]];
+const SECTORS=[["Центр","Центр","Centru"],["Ботаника","Ботаника","Botanica"],["Рышкановка","Рышкановка","Râșcani"],["Чеканы","Чеканы","Ciocana"],["Буюканы","Буюканы","Buiucani"],["Телецентр","Телецентр","Telecentru"],["Скулянка","Скулянка","Sculeni"],["Старая Почта","Старая Почта","Poșta Veche"],["Малая Малина","Малая Малина","Malina Mică"],["Дурлешты","Дурлешты","Durlești"],["Кодру","Кодру","Codru"],["Ставчены","Ставчены","Stăuceni"],["Трушены","Трушены","Trușeni"],["Ватра","Ватра","Vatra"],["Гидигич","Гидигич","Ghidighici"],["Бачой","Бачой","Băcioi"],["Сынжера","Сынжера","Sîngera"],["Бубуечь","Бубуечь","Bubuieci"],["Будешты","Будешты","Budești"],["Колоница","Колоница","Colonița"],["Крикова","Крикова","Cricova"],["Пригород","Пригород (другое)","Suburbie (altele)"]];
+const LAPTOP_CPU=[["i3","Intel Core i3","Intel Core i3"],["i5","Intel Core i5","Intel Core i5"],["i7","Intel Core i7","Intel Core i7"],["i9","Intel Core i9","Intel Core i9"],["ultra","Intel Core Ultra","Intel Core Ultra"],["r5","AMD Ryzen 5","AMD Ryzen 5"],["r7","AMD Ryzen 7","AMD Ryzen 7"],["r9","AMD Ryzen 9","AMD Ryzen 9"],["m1","Apple M1","Apple M1"],["m2","Apple M2","Apple M2"],["m3","Apple M3 / M3 Pro","Apple M3 / M3 Pro"],["m4","Apple M4","Apple M4"]];
+const LAPTOP_GPU=["Встроенная графика",...GPU_DB.NVIDIA.filter(g=>/^RTX (20|30|40|50)|^GTX 16/.test(g)),"RX 6600M","RX 7600S","Radeon 780M"];
 const SIZES=["XS","S","M","L","XL","XXL"];
-const CLOTH_BRANDS=["Nike","Adidas","Zara","H&M","Mango","The North Face","Levi's","Puma","Timberland","Другой"];
-const DOG_BREEDS=[["lab","Лабрадор","Labrador"],["shep","Немецкая овчарка","Ciobănesc german"],["husky","Хаски","Husky"],["dachs","Такса","Teckel"],["spitz","Шпиц","Spitz"],["york","Йоркширский терьер","Yorkshire terrier"],["mix","Метис","Metis"]];
-const CAT_BREEDS=[["brit","Британская","Britanică"],["scot","Шотландская вислоухая","Scottish fold"],["maine","Мейн-кун","Maine coon"],["sphynx","Сфинкс","Sphynx"],["bengal","Бенгальская","Bengaleză"],["none","Беспородная","Fără rasă"]];
 
 const CATS = [
  {id:"auto",ic:"car",c:"#2563eb",ru:"Транспорт",ro:"Transport",
@@ -63,8 +32,9 @@ const CATS = [
    {k:"brand",ru:"Марка",ro:"Marca",t:"sel",g:"main",only:[0],opts:CAR_BRANDS},
    {k:"model",ru:"Модель",ro:"Model",t:"sel",g:"main",only:[0],dep:"brand",by:CAR_MODELS},
    {k:"gen",ru:"Поколение",ro:"Generație",t:"sel",g:"main",only:[0],dep:"model",by:CAR_GENS},
-   {k:"brand",ru:"Марка",ro:"Marca",t:"sel",g:"main",only:[1,3],opts:["Mercedes-Benz","MAN","DAF","Iveco","Volkswagen","Ford","Renault"]},
-   {k:"brand",ru:"Марка",ro:"Marca",t:"sel",g:"main",only:[2],opts:["Honda","Yamaha","Kawasaki","BMW","Suzuki","KTM"]},
+   {k:"brand",ru:"Марка",ro:"Marca",t:"sel",g:"main",only:[1],opts:TRUCK_BRANDS},
+   {k:"brand",ru:"Марка",ro:"Marca",t:"sel",g:"main",only:[3],opts:BUS_BRANDS},
+   {k:"brand",ru:"Марка",ro:"Marca",t:"sel",g:"main",only:[2],opts:MOTO_BRANDS},
    {k:"mtype",ru:"Тип мотоцикла",ro:"Tip motocicletă",t:"multi",g:"main",only:[2],opts:[["sport","Спортивный","Sport"],["naked","Нейкед","Naked"],["enduro","Эндуро","Enduro"],["cruiser","Круизер","Cruiser"],["touring","Туристический","Touring"],["scooter","Скутер","Scuter"]]},
    {k:"body",ru:"Тип кузова",ro:"Caroserie",t:"multi",g:"main",only:[0],opts:BODY},
    {k:"year",ru:"Год выпуска",ro:"Anul fabricației",t:"rng",g:"main",only:[0,1,2,3,4,8],gen:[2005,2024]},
@@ -105,6 +75,7 @@ const CATS = [
    YN("notfirst","Не первый этаж","Nu primul etaj","specs",[0,2]),
    YN("notlast","Не последний этаж","Nu ultimul etaj","specs",[0,2]),
    {k:"walls",ru:"Материал стен",ro:"Material pereți",t:"multi",g:"specs",only:[0,1],opts:WALLS},
+   {k:"series",ru:"Серия дома",ro:"Seria blocului",t:"multi",g:"specs",only:[0,2],opts:HOUSE_SERIES},
    {k:"state",ru:"Ремонт",ro:"Starea",t:"multi",g:"specs",only:[0,1,2],opts:RSTATE},
    {k:"land",ru:"Участок",ro:"Teren",t:"rng",u:"соток",g:"main",only:[1,4]},
    {k:"landuse",ru:"Назначение",ro:"Destinație",t:"multi",g:"main",only:[4],opts:[["build","Под строительство","Pentru construcție"],["agro","Сельхоз","Agricol"],["dacha","Дача / сад","Vilă / livadă"]]},
@@ -134,22 +105,33 @@ const CATS = [
   fields:[
    {k:"brand",ru:"Бренд",ro:"Brand",t:"sel",g:"main",only:[0],opts:Object.keys(PHONE_DB)},
    {k:"model",ru:"Модель",ro:"Model",t:"sel",g:"main",only:[0],dep:"brand",by:PHONE_DB},
-   {k:"brand",ru:"Бренд",ro:"Brand",t:"sel",g:"main",only:[3],opts:["Apple","Samsung","Xiaomi","Lenovo"]},
-   {k:"brand",ru:"Бренд",ro:"Brand",t:"multi",g:"main",only:[1],opts:["Apple","Lenovo","ASUS","HP","Acer","Dell","MSI"]},
+   {k:"brand",ru:"Бренд",ro:"Brand",t:"sel",g:"main",only:[3],opts:TABLET_BRANDS},
+   {k:"battery",ru:"Ёмкость аккумулятора",ro:"Starea bateriei",t:"rng",u:"%",g:"state",only:[0],gen:[76,100]},
+   {k:"brand",ru:"Бренд",ro:"Brand",t:"sel",g:"main",only:[1],opts:Object.keys(LAPTOP_DB)},
+   {k:"line",ru:"Серия",ro:"Serie",t:"sel",g:"main",only:[1],dep:"brand",by:LAPTOP_DB},
    {k:"lpurpose",ru:"Назначение",ro:"Destinație",t:"multi",g:"main",only:[1,2],opts:[["gaming","Игровой","Gaming"],["office","Для работы и учёбы","Birou și studii"],["ultra","Ультрабук / тонкий","Ultrabook"],["pro","Для монтажа и дизайна","Editare și design"]]},
    {k:"lcpu",ru:"Процессор",ro:"Procesor",t:"multi",g:"specs",only:[1],opts:LAPTOP_CPU},
-   {k:"cpu",ru:"Процессор",ro:"Procesor",t:"multi",g:"specs",only:[2],opts:CPU},
-   {k:"gpu",ru:"Видеокарта",ro:"Placă video",t:"multi",g:"specs",only:[2,8],opts:GPU},
+   {k:"cpu",ru:"Процессор",ro:"Procesor",t:"multi",g:"specs",only:[2,8],opts:CPU_ALL},
+   {k:"lgpu",ru:"Видеокарта",ro:"Placă video",t:"multi",g:"specs",only:[1],opts:LAPTOP_GPU},
+   {k:"refresh",ru:"Частота экрана",ro:"Rată de reîmprospătare",t:"multi",g:"specs",only:[1,4],opts:["60 Гц","90 Гц","120 Гц","144 Гц","165 Гц","240 Гц"]},
+   {k:"ramtype",ru:"Тип памяти",ro:"Tip memorie",t:"multi",g:"specs",only:[2],opts:["DDR3","DDR4","DDR5"]},
+   {k:"gpu",ru:"Видеокарта",ro:"Placă video",t:"multi",g:"specs",only:[2,8],opts:GPU_ALL},
+   {k:"vram",ru:"Видеопамять",ro:"Memorie video",t:"multi",g:"specs",only:[8],opts:["2 ГБ","4 ГБ","6 ГБ","8 ГБ","10 ГБ","12 ГБ","16 ГБ","20 ГБ","24 ГБ","32 ГБ"]},
    {k:"ram",ru:"Оперативная память",ro:"Memorie RAM",t:"rng",u:"ГБ",g:"specs",only:[0,1,2,3]},
    {k:"storage",ru:"Встроенная память / SSD",ro:"Memorie / SSD",t:"multi",g:"specs",only:[0,1,2,3],opts:[["64","64 ГБ","64 GB"],["128","128 ГБ","128 GB"],["256","256 ГБ","256 GB"],["512","512 ГБ","512 GB"],["1000","1 ТБ","1 TB"],["2000","2 ТБ","2 TB"]]},
    {k:"lscreen",ru:"Диагональ экрана",ro:"Diagonala",t:"rng",u:"″",g:"specs",only:[1,3]},
    YN("dgpu","Дискретная видеокарта","Placă video dedicată","specs",[1],.4),
-   {k:"brand",ru:"Бренд",ro:"Brand",t:"multi",g:"main",only:[4],opts:["Samsung","LG","Sony","Xiaomi","Philips"]},
+   {k:"brand",ru:"Бренд",ro:"Brand",t:"multi",g:"main",only:[4],opts:TV_BRANDS},
+   {k:"atype",ru:"Тип устройства",ro:"Tip dispozitiv",t:"multi",g:"main",only:[5],opts:[["head","Наушники","Căști"],["speaker","Колонки","Boxe"],["soundbar","Саундбары","Soundbar"],["receiver","Усилители и ресиверы","Amplificatoare"],["vinyl","Проигрыватели винила","Pick-up"],["mic","Микрофоны","Microfoane"]]},
+   {k:"brand",ru:"Бренд",ro:"Brand",t:"multi",g:"main",only:[5],opts:AUDIO_BRANDS},
+   {k:"phtype",ru:"Тип устройства",ro:"Tip dispozitiv",t:"multi",g:"main",only:[6],opts:[["camera","Фотоаппараты","Aparate foto"],["lens","Объективы","Obiective"],["action","Экшн-камеры","Camere de acțiune"],["drone","Дроны","Drone"],["video","Видеокамеры","Camere video"],["light","Свет и вспышки","Lumini și blițuri"]]},
+   {k:"brand",ru:"Бренд",ro:"Brand",t:"multi",g:"main",only:[6],opts:PHOTO_BRANDS},
    {k:"screen",ru:"Диагональ",ro:"Diagonala",t:"rng",u:"″",g:"main",only:[4]},
-   {k:"panel",ru:"Тип матрицы",ro:"Tip ecran",t:"multi",g:"specs",only:[4],opts:["OLED","QLED","NanoCell","LED"]},
-   {k:"res",ru:"Разрешение",ro:"Rezoluție",t:"multi",g:"specs",only:[4],opts:["4K UHD","Full HD","8K"]},
+   {k:"panel",ru:"Тип матрицы",ro:"Tip ecran",t:"multi",g:"specs",only:[4],opts:["OLED","QLED","Mini-LED","NanoCell","LED"]},
+   {k:"res",ru:"Разрешение",ro:"Rezoluție",t:"multi",g:"specs",only:[4],opts:["HD","Full HD","4K UHD","8K"]},
    YN("smart","Smart TV","Smart TV","specs",[4],.85),
-   {k:"platform",ru:"Платформа",ro:"Platformă",t:"multi",g:"main",only:[7],opts:["PlayStation","Xbox","Nintendo","Steam Deck"]},
+   {k:"platform",ru:"Платформа",ro:"Platformă",t:"sel",g:"main",only:[7],opts:Object.keys(CONSOLE_DB)},
+   {k:"cmodel",ru:"Модель",ro:"Model",t:"sel",g:"main",only:[7],dep:"platform",by:CONSOLE_DB},
    {k:"part",ru:"Тип комплектующих",ro:"Tip componentă",t:"multi",g:"main",only:[8],opts:[["gpu","Видеокарта","Placă video"],["cpu","Процессор","Procesor"],["ram","Оперативная память","Memorie RAM"],["ssd","Накопитель","Stocare"],["mon","Монитор","Monitor"],["psu","Блок питания","Sursă"]]},
    {k:"color",ru:"Цвет",ro:"Culoare",t:"color",g:"specs",only:[0,3],opts:COLORS.filter(c=>["white","black","silver","grey","blue","green"].includes(c[0]))},
    YN("warranty","На гарантии","În garanție","state",[0,1,2,3,4,7,8],.3),
@@ -164,7 +146,7 @@ const CATS = [
  {id:"appl",ic:"washing-machine",c:"#475569",ru:"Бытовая техника",ro:"Electrocasnice",
   subs:[["Холодильники","Frigidere"],["Стиральные машины","Mașini de spălat"],["Плиты и духовки","Aragaze și cuptoare"],["Кондиционеры","Aparate de aer condiționat"],["Пылесосы","Aspiratoare"],["Мелкая техника","Electrocasnice mici"]],
   fields:[
-   {k:"brand",ru:"Бренд",ro:"Brand",t:"multi",g:"main",opts:["Bosch","Samsung","LG","Electrolux","Beko","Gree","Xiaomi","Philips","Indesit"]},
+   {k:"brand",ru:"Бренд",ro:"Brand",t:"multi",g:"main",opts:APPL_BRANDS},
    YN("nofrost","No Frost","No Frost","specs",[0],.6),
    {k:"height",ru:"Высота",ro:"Înălțime",t:"rng",u:"см",g:"specs",only:[0],gen:[140,205]},
    {k:"load",ru:"Загрузка",ro:"Încărcare",t:"rng",u:"кг",g:"specs",only:[1],gen:[5,10]},
@@ -199,7 +181,7 @@ const CATS = [
   subs:[["Стройматериалы","Materiale"],["Инструменты","Unelte"],["Сантехника","Sanitare"],["Электрика","Electrice"],["Двери и окна","Uși și geamuri"]],
   fields:[
    {k:"mtype",ru:"Материал",ro:"Material",t:"multi",g:"main",only:[0],opts:[["blocks","Блоки и кирпич","Blocuri și cărămidă"],["roof","Кровля","Acoperiș"],["floor","Напольные покрытия","Pardoseli"],["mix","Смеси и цемент","Amestecuri și ciment"],["wood","Пиломатериалы","Cherestea"]]},
-   {k:"tbrand",ru:"Бренд инструмента",ro:"Brand",t:"multi",g:"main",only:[1],opts:["Makita","Bosch","DeWalt","Metabo","Einhell","Другой"]},
+   {k:"tbrand",ru:"Бренд инструмента",ro:"Brand",t:"multi",g:"main",only:[1],opts:TOOL_BRANDS},
    {k:"power",ru:"Питание",ro:"Alimentare",t:"multi",g:"specs",only:[1],opts:[["battery","Аккумулятор","Acumulator"],["mains","От сети","De la rețea"],["manual","Ручной","Manual"]]},
    YN("delivery_site","Доставка на объект","Livrare la obiect","terms",[0,4],.4)]},
  {id:"serv",ic:"wrench",c:"#0d9488",ru:"Услуги",ro:"Servicii",

@@ -547,3 +547,8 @@ details.fg>summary b{background:var(--brand);color:#fff;font-size:11px;border-ra
 .optlist span{display:inline-flex;align-items:center;gap:4px}.optlist svg{width:14px;height:14px;color:var(--brand)}
 .ochk{display:inline-flex !important;align-items:center;gap:5px;font-weight:600 !important;cursor:pointer}
 .ochk input{accent-color:var(--brand)}
+
+.mfind{height:34px;font-size:13px;margin-bottom:6px}
+.mchips.many{max-height:180px}
+.mchips .chip[hidden]{display:none}
+label.f .nsel{background:var(--brand);color:#fff;font-size:10.5px;border-radius:8px;padding:0 6px;margin-left:4px}

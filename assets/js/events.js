@@ -50,7 +50,7 @@ $("#adv").addEventListener("change", e => {
 $("#adv").addEventListener("click", e => { const b = e.target.closest("[data-am]"); if (!b) return;
   const k = b.dataset.am, v = b.dataset.v, a = {...S.attrs}, cur = Array.isArray(a[k]) ? a[k].slice() : hasVal(a[k]) ? [String(a[k])] : [];
   const i = cur.indexOf(v); i>=0 ? cur.splice(i,1) : cur.push(v); if (cur.length) a[k]=cur; else delete a[k]; go({attrs:a}); });
-let at; $("#adv").addEventListener("input", e => { const el=e.target; if(!el.dataset.ar) return; clearTimeout(at); at=setTimeout(()=>{
+let at; $("#adv").addEventListener("input", e => { const el=e.target; if (el.dataset.mfind){ applyMfind(); return; } if(!el.dataset.ar) return; clearTimeout(at); at=setTimeout(()=>{
   const a={...S.attrs}, cur={...(a[el.dataset.ar]||{})}; cur[el.dataset.e]= el.value===""?undefined:+el.value;
   if (cur.min==null && cur.max==null) delete a[el.dataset.ar]; else a[el.dataset.ar]=cur;
   Object.assign(S,{attrs:a,shown:24}); render(); }, 300); });

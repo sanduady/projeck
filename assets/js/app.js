@@ -114,6 +114,9 @@ function renderCats(){
 }
 const uniqFields = (c, sub) => { const seen = new Set(); return fieldsFor(c, sub).filter(f => !seen.has(f.k) && seen.add(f.k)); };
 function childKeys(fs, k){ const out=[]; let cur=[k]; while (cur.length){ const nx = fs.filter(f=>cur.includes(f.dep)).map(f=>f.k); out.push(...nx); cur = nx; } return out; }
+const MFIND = {};
+function applyMfind(){ $$("[data-mfind]").forEach(inp=>{ const q=norm(inp.value).trim(); MFIND[inp.dataset.mfind]=inp.value;
+  $$(`[data-mlist="${inp.dataset.mfind}"] .chip`).forEach(c=>c.hidden = !!q && !c.dataset.tx.includes(q) && !c.classList.contains("on")); }); }
 function renderAdv(){
   const c = catOf(S.cat);
   let h = `<div class="hd"><i data-lucide="sliders-horizontal"></i>${t("adv")}</div>`;
@@ -125,12 +128,12 @@ function renderAdv(){
   for (const g of Object.keys(GROUPS)){
     const list = groups[g]; if (!list) continue;
     const act = list.filter(f=>hasVal(S.attrs[f.k])).length;
-    h += `<details class="fg" ${g==="main"||g==="tech"||act?"open":""}><summary>${GROUPS[g][L1]}${act?`<b>${act}</b>`:""}</summary>`;
+    h += `<details class="fg" ${g==="main"||g==="tech"||g==="specs"||act?"open":""}><summary>${GROUPS[g][L1]}${act?`<b>${act}</b>`:""}</summary>`;
     for (const f of list) h += advField(f, fs);
     h += `</details>`;
   }
   if (S.sub===null && c.fields.some(f=>f.only)) h += `<div class="hint">${t("advHint2")}</div>`;
-  $("#adv").innerHTML = h;
+  $("#adv").innerHTML = h; applyMfind();
 }
 function advField(f, fs){
   const v = S.attrs[f.k], lab = f[S.lang] + (f.u ? `, ${f.u}` : "");
@@ -147,15 +150,18 @@ function advField(f, fs){
   const opts = fieldOpts(f, S.attrs);
   if (f.t==="sel"){
     if (f.dep && !hasVal(S.attrs[f.dep])){ const pf = fs.find(x=>x.k===f.dep); return `<label class="f">${esc(lab)}</label><select class="fld" disabled><option>${t("pickFirst")} ${esc((pf?.[S.lang]||"").toLowerCase())}</option></select>`; }
+    if (!opts.length) return `<label class="f">${esc(lab)}</label><select class="fld" disabled><option>—</option></select>`;
     return `<label class="f">${esc(lab)}</label><select class="fld" data-af="${f.k}"><option value="">${t("any")}</option>${opts.map(o=>{ const ov=optV(o), n=cnt[ov]||0;
       return `<option value="${esc(ov)}" ${v==ov?"selected":""} ${!n&&v!=ov?"disabled":""}>${esc(Array.isArray(o)?o[L()]:o)}${n?` (${n})`:""}</option>`; }).join("")}</select>`;
   }
   const sel = Array.isArray(v) ? v.map(String) : hasVal(v) ? [String(v)] : [];
   if (f.t==="color") return `<label class="f">${esc(lab)}</label><div class="sw-row">${opts.map(o=>{ const n=cnt[o[0]]||0;
     return `<button type="button" class="swc ${sel.includes(o[0])?"on":""} ${!n&&!sel.includes(o[0])?"off":""}" data-am="${f.k}" data-v="${o[0]}" title="${esc(o[L()])} (${n})" style="--c:${o[3]}"></button>`; }).join("")}</div>`;
-  const many = opts.length > 8;
-  return `<label class="f">${esc(lab)}</label><div class="chips mchips ${many?"many":""}">${opts.map(o=>{ const ov=String(optV(o)), n=cnt[ov]||0;
-    return `<button type="button" class="chip ${sel.includes(ov)?"on":""} ${!n&&!sel.includes(ov)?"off":""}" data-am="${f.k}" data-v="${esc(ov)}">${esc(Array.isArray(o)?o[L()]:o)}<small>${n}</small></button>`; }).join("")}</div>`;
+  const many = opts.length > 10;
+  // длинные списки: сначала выбранные, затем с объявлениями, затем остальные; есть строка поиска
+  const ordered = many ? [...opts].sort((x,y)=>{ const a=String(optV(x)), b=String(optV(y)); return (sel.includes(b)-sel.includes(a)) || ((cnt[b]||0)>0) - ((cnt[a]||0)>0); }) : opts;
+  return `<label class="f">${esc(lab)}${sel.length?` <b class="nsel">${sel.length}</b>`:""}</label>${many?`<input class="fld mfind" data-mfind="${f.k}" placeholder="${t("findIn")} (${opts.length})" value="${esc(MFIND[f.k]||"")}">`:""}<div class="chips mchips ${many?"many":""}" data-mlist="${f.k}">${ordered.map(o=>{ const ov=String(optV(o)), n=cnt[ov]||0, tx=Array.isArray(o)?o[L()]:o;
+    return `<button type="button" class="chip ${sel.includes(ov)?"on":""} ${!n&&!sel.includes(ov)?"off":""}" data-am="${f.k}" data-v="${esc(ov)}" data-tx="${esc(norm(tx))}">${esc(tx)}<small>${n}</small></button>`; }).join("")}</div>`;
 }
 function cardHTML(a){
   const c = catOf(a.cat), sp = specLine(a);

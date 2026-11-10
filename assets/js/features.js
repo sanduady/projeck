@@ -24,10 +24,13 @@ const HINTS = {
   breed:[["lab",/лабрадор/],["shep",/овчарк/],["brit",/британ/],["scot",/шотланд|вислоух/],["maine",/мейн/]],
   itype:[["guitar",/гитар/],["piano",/пианино|синтез/]],
   btype:[["ebike",/электро/],["kids",/детск/],["mtb",/горн|marlin|29/]],
-  atype:[["tractor",/трактор|мтз/],["motoblock",/мотоблок/],["tool",/плуг/]],
   crop:[["grain",/пшениц|зерн/],["wine",/вино/],["honey",/мёд|мед/]],
   animal:[["cow",/коров/],["poultry",/цыпл|кур|бройл/]],
   platform:[["PlayStation",/playstation|ps\d/],["Xbox",/xbox/],["Nintendo",/switch|nintendo/],["Steam Deck",/steam deck/]],
+  cmodel:[["PS5 Slim",/playstation 5 slim|ps5 slim/],["PS5",/playstation 5|ps5/],["PS4 Pro",/playstation 4 pro|ps4 pro/],["PS4",/playstation 4|ps4/],["Xbox Series X",/series x/],["Xbox Series S",/series s/],["Switch OLED",/switch oled/],["Steam Deck OLED",/deck oled/]],
+  atype:[["head",/наушник|airpods/],["speaker",/колонк/],["soundbar",/саундбар/],["vinyl",/проигрыв|винил/],["tractor",/трактор|мтз/],["motoblock",/мотоблок/],["tool",/плуг/]],
+  phtype:[["camera",/eos|body|sony a7|фотоаппарат/],["lens",/объектив/],["action",/gopro|экшн/],["drone",/дрон|dji/]],
+  vram:[["8 ГБ",/rtx 4060|rtx 3070|rx 7600|rx 6600/],["12 ГБ",/rtx 3060|rtx 4070/]],
   part:[["gpu",/видеокарт/],["mon",/монитор/],["ssd",/ssd/],["ram",/памят/],["psu",/блок питан/]],
   vtype:[["robot",/робот/]], stove:[["gas",/газов/],["oven",/духов/]],
   fish:[["rod",/удилищ|спиннинг/],["reel",/катушк/],["echo",/эхолот/],["lure",/воблер|блёсен|блесен/],["boat",/лодк/]],
@@ -67,7 +70,8 @@ function enrich(a){
   if (at.floor!=null && at.floors!=null){ if (at.floor>at.floors) at.floors = at.floor; at.notfirst = at.floor>1; at.notlast = at.floor<at.floors; }
   if (at.storage!=null) at.storage = String(at.storage);
   if (a.cat==="elec" && a.sub===1 && at.dgpu==null) at.dgpu = /rtx|gtx/.test(t);
-  if (a.cat==="elec" && a.sub===2 && !at.lpurpose) at.lpurpose = GPU.indexOf(at.gpu)>=2 ? "gaming" : "office";
+  if (a.cat==="elec" && a.sub===2 && !at.lpurpose) at.lpurpose = /^(GTX 1[06]|RX 5[5-9]0|RX 6600$|Arc A3)/.test(at.gpu||"") ? "office" : "gaming";
+  if (a.cat==="elec" && a.sub===1 && !at.lgpu) at.lgpu = (t.match(/rtx \d{4}/)||[])[0]?.toUpperCase() || "Встроенная графика";
 }
 
 /* ---------- картинки и описания демо-объявлений (до загрузки своих объявлений) ---------- */
@@ -161,16 +165,17 @@ function renderHomeStrips(){
 }
 
 /* ---------- поиск на карте ---------- */
-const CITY_GEO = {chi:[28.86,47.01],bal:[27.93,47.76],cah:[28.19,45.90],com:[28.66,46.30],ung:[27.80,47.21],orh:[28.82,47.38],sor:[28.30,48.16],edi:[27.30,48.17],hin:[28.59,46.83],str:[28.61,47.14],tir:[29.63,46.84]};
+const CITY_GEO = Object.fromEntries(REG_DB.map(r=>[r[0],[r[3],r[4]]]));
 const MD_SHAPE = [[26.62,48.26],[27.25,48.38],[27.58,48.47],[28.1,48.24],[28.5,48.17],[28.95,47.95],[29.2,47.98],[29.25,47.75],[29.55,47.4],[29.6,47.2],[29.95,46.95],[30.13,46.6],[30.1,46.42],[29.65,46.45],[29.3,46.47],[29.0,46.5],[28.95,46.1],[28.6,45.72],[28.2,45.47],[28.15,45.62],[28.1,46.0],[28.0,46.5],[28.0,46.85],[27.8,47.2],[27.4,47.6],[27.0,48.0],[26.62,48.26]];
 const proj = ([lon,lat]) => [ (lon-26.4)*68*0.68*1.0 + 20, (48.65-lat)*68 + 14 ];
 function renderMap(list){
   const by = {}; list.forEach(a=>by[a.reg]=(by[a.reg]||0)+1);
   const max = Math.max(1,...Object.values(by));
+  const top = Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,10).map(x=>x[0]);
   const path = MD_SHAPE.map((p,i)=>(i?"L":"M")+proj(p).map(n=>n.toFixed(1)).join(",")).join("")+"Z";
-  const pins = Object.entries(CITY_GEO).map(([id,g])=>{ const [x,y]=proj(g), n=by[id]||0, r = n? 6+Math.sqrt(n/max)*10 : 3.5;
+  const pins = Object.entries(CITY_GEO).map(([id,g])=>{ const [x,y]=proj(g), n=by[id]||0, r = n? 4.5+Math.sqrt(n/max)*9 : 2.5;
     return `<g class="pin ${n?"":"zero"} ${S.reg===id?"on":""}" data-city="${id}" tabindex="0"><circle cx="${x}" cy="${y}" r="${r}"/>${n?`<text x="${x}" y="${y+3}">${n}</text>`:""}
-      <text class="nm" x="${x}" y="${y-r-3}">${esc(regName(id))}</text></g>`; }).join("");
+      ${top.includes(id)||S.reg===id?`<text class="nm" x="${x}" y="${y-r-3}">${esc(regName(id))}</text>`:""}<title>${esc(regName(id))}: ${n}</title></g>`; }).join("");
   const side = Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([id,n])=>`<button class="city ${S.reg===id?"on":""}" data-city="${id}"><span>${esc(regName(id))}</span><b>${n}</b></button>`).join("");
   return `<div class="mapbox"><div class="mapsvg"><svg viewBox="0 0 230 240" role="img" aria-label="${t("mapT")}"><path class="land" d="${path}"/>${pins}</svg></div>
     <div class="mapside"><h3>${t("mapT")}</h3><p>${t("mapHint")}</p>${side||`<p>${t("nores")}</p>`}</div></div>`;

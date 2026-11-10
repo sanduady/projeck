@@ -3,11 +3,11 @@
 
 Object.assign(T.ru, {
   favEmpty:"В избранном пока пусто", favEmpty2:"Нажимайте ♡ на объявлениях — они сохранятся здесь.",
-  sgHistory:"Вы искали", sgPopular:"Часто ищут", sgCats:"Категории", sgAds:"Объявления", sgClear:"Очистить", totop:"Наверх"
+  sgHistory:"Вы искали", findIn:"Найти в списке", sgPopular:"Часто ищут", sgCats:"Категории", sgAds:"Объявления", sgClear:"Очистить", totop:"Наверх"
 });
 Object.assign(T.ro, {
   favEmpty:"Lista de favorite e goală", favEmpty2:"Apasă ♡ pe anunțuri — vor fi salvate aici.",
-  sgHistory:"Ai căutat", sgPopular:"Căutări populare", sgCats:"Categorii", sgAds:"Anunțuri", sgClear:"Șterge", totop:"Sus"
+  sgHistory:"Ai căutat", findIn:"Caută în listă", sgPopular:"Căutări populare", sgCats:"Categorii", sgAds:"Anunțuri", sgClear:"Șterge", totop:"Sus"
 });
 
 /* ---------- информационные страницы ---------- */
