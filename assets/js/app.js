@@ -188,7 +188,7 @@ function openPost(){
       <label>${t("pPhone")}<input class="fld" name="phone" value="+373 " inputmode="tel"></label></div>
     <label class="chk" style="display:flex;font-weight:600"><input type="checkbox" name="isnew"> ${t("new")}</label>
     <label class="chk" style="display:flex;font-weight:600"><input type="checkbox" name="dlv"> ${t("pDelivery")}</label>
-    <div><div class="lbl">${t("promo_t")}</div><div class="opts promo">${t("promo").map(([v,n,d],i)=>`<label class="opt"><input type="radio" name="promo" value="${v}" ${i?"":"checked"}><span><b>${n}</b><small>${d}</small></span></label>`).join("")}</div><p class="ssub">${t("promoNote")}</p></div>
+    <div><div class="lbl">${t("promo_t")}</div><div class="opts promo">${t("promoOpts").map(([v,n,d],i)=>`<label class="opt"><input type="radio" name="promo" value="${v}" ${i?"":"checked"}><span><b>${n}</b><small>${d}</small></span></label>`).join("")}</div><p class="ssub">${t("promoNote")}</p></div>
     <div class="err" id="perr"></div>
     <button class="btn l">${t("pSend")}</button></form>`, 760);
   const f = $("#pf");

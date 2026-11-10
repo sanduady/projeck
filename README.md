@@ -55,6 +55,7 @@ index.html               разметка страницы
 assets/css/styles.css    все стили (адаптив внизу файла)
 assets/js/
   icons.js               иконки Lucide (генерируется tools/build_icons.py)
+  illustrations.js       собственные векторные иллюстрации товаров для демо-объявлений
   catalog.js             регионы, категории, подкатегории, атрибуты фильтров
   demo-data.js           демо-объявления и продавцы (заменить на API)
   i18n.js                переводы RU / RO

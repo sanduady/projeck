@@ -495,3 +495,8 @@ img,svg{max-width:100%}
 }
 
 .fulldesc{color:var(--ink2);white-space:pre-line}
+
+/* фото в карточке объявления: показываем целиком, 4:3 */
+.det .ph{aspect-ratio:4/3;min-height:0;height:auto;flex:none !important;background-size:cover}
+.det>div:first-child{background:#f1f4f2}
+.gal{flex-wrap:wrap}.gal img{width:84px;height:63px;border:2px solid transparent}.gal img:hover{border-color:var(--brand)}

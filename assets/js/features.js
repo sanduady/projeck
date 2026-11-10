@@ -8,6 +8,10 @@ const store = {
   get(k, d){ try { const v = localStorage.getItem("gata_"+k); return v==null ? d : JSON.parse(v); } catch(e){ return d; } },
   set(k, v){ try { localStorage.setItem("gata_"+k, JSON.stringify(v)); return true; } catch(e){ return false; } }
 };
+/* ---------- картинки и описания демо-объявлений (до загрузки своих объявлений) ---------- */
+ADS.forEach(a=>{ const ill = a.ill || illFor(a);
+  if (ill){ a.imgs = illCached(ill.join("|"), ...ill); a.photos = a.imgs.length; }
+  if (!a.rich) a.desc = descFor(a); });
 let VIEWED = store.get("viewed", []);         // id объявлений
 let SAVED  = store.get("saved", []);          // сохранённые поиски
 let CHATS  = store.get("chats", {});          // { adId: {adId, msgs:[{me,text,t}], unread} }
@@ -37,7 +41,7 @@ Object.assign(T.ru, {
   cab_noMy:"У вас пока нет объявлений.", cab_noOrders:"Заказов пока нет. Ищите значок «Доставка» в объявлениях.", cab_noSaved:"Нет сохранённых поисков. Настройте фильтры и нажмите «Сохранить поиск».", cab_noViewed:"Вы ещё ничего не смотрели.",
   raise:"Поднять", remove:"Снять", open:"Открыть", del:"Удалить", raised:"Объявление поднято в начало списка", removed:"Объявление снято с публикации", viewsN:"просмотров",
   saveSearch:"Сохранить поиск", searchSaved:"Поиск сохранён — новые объявления будут в кабинете", nowFound:"сейчас найдено", newN:"новых",
-  promo_t:"Продвижение", promo:[["none","Обычное","Бесплатно"],["hl","Выделить цветом","29 лей · 7 дней"],["top","В ТОП","59 лей · 3 дня"],["turbo","Турбо: ТОП + выделение","99 лей · до 10× просмотров"]], promoNote:"Демо: оплата продвижения подключается позже.",
+  promo_t:"Продвижение", promoOpts:[["none","Обычное","Бесплатно"],["hl","Выделить цветом","29 лей · 7 дней"],["top","В ТОП","59 лей · 3 дня"],["turbo","Турбо: ТОП + выделение","99 лей · до 10× просмотров"]], promoNote:"Демо: оплата продвижения подключается позже.",
   pDelivery:"Готов отправить доставкой (Gata Доставка)",
   viewedT:"Вы недавно смотрели", recoT:"Рекомендации для вас", mapT:"Объявления на карте", mapHint:"Нажмите на город, чтобы показать его объявления", map:"Карта"
 });
@@ -59,7 +63,7 @@ Object.assign(T.ro, {
   cab_noMy:"Încă nu ai anunțuri.", cab_noOrders:"Încă nu ai comenzi. Caută insigna „Livrare” în anunțuri.", cab_noSaved:"Nu ai căutări salvate. Setează filtrele și apasă „Salvează căutarea”.", cab_noViewed:"Încă nu ai vizualizat nimic.",
   raise:"Ridică", remove:"Retrage", open:"Deschide", del:"Șterge", raised:"Anunțul a fost ridicat în top", removed:"Anunțul a fost retras", viewsN:"vizualizări",
   saveSearch:"Salvează căutarea", searchSaved:"Căutare salvată — anunțurile noi vor fi în cabinet", nowFound:"găsite acum", newN:"noi",
-  promo_t:"Promovare", promo:[["none","Obișnuit","Gratuit"],["hl","Evidențiere color","29 lei · 7 zile"],["top","În TOP","59 lei · 3 zile"],["turbo","Turbo: TOP + evidențiere","99 lei · până la 10× vizualizări"]], promoNote:"Demo: plata promovării se conectează mai târziu.",
+  promo_t:"Promovare", promoOpts:[["none","Obișnuit","Gratuit"],["hl","Evidențiere color","29 lei · 7 zile"],["top","În TOP","59 lei · 3 zile"],["turbo","Turbo: TOP + evidențiere","99 lei · până la 10× vizualizări"]], promoNote:"Demo: plata promovării se conectează mai târziu.",
   pDelivery:"Pot trimite prin livrare (Gata Livrare)",
   viewedT:"Ai văzut recent", recoT:"Recomandări pentru tine", mapT:"Anunțuri pe hartă", mapHint:"Apasă pe un oraș pentru a vedea anunțurile lui", map:"Hartă"
 });
